@@ -39,5 +39,14 @@
   ],
   "languages": [
     { "lang": "en", "name": "English", "path": "lang/en.json" }
+  ],
+  "packs": [
+    { "name": "macros", "label": "Death Tracker: Macros", "path": "packs/macros", "type": "Macro" },
+    { "name": "rules", "label": "Death Tracker: Rules", "path": "packs/rules", "type": "JournalEntry", "system": "draw-steel" }
+  ],
+  "packFolders": [
+    { "name": "Combat Tools", "color": "#d9c186", "folders": [
+      { "name": "Death Tracker", "color": "#d77676", "packs": ["macros", "rules"] }
+    ]}
   ]
 }

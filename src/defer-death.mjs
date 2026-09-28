@@ -3,7 +3,7 @@ import { getSquadGroup, safeDelete, registerStatusGroup } from './ctlib.mjs';
 
 export const DEFER_DEATH = 'dsctDeferDeath';
 
-const RULES = 'Compendium.draw-steel-combat-tools.rules.JournalEntry.DSCTrulesJournal.JournalEntryPage.';
+const RULES = 'Compendium.draw-steel-death-tracker.rules.JournalEntry.DSDTrulesJournal.JournalEntryPage.';
 
 const _status = () => ({
   id: DEFER_DEATH,
@@ -13,7 +13,7 @@ const _status = () => ({
   name: game.i18n.localize('DSDT.status.deferDeath'),
   img: 'icons/svg/angel.svg',
   description: game.i18n.localize('DSDT.status.deferDeathDescription'),
-  rule: `${RULES}DSCTruleDeferDth`,
+  rule: `${RULES}DSDTruleDeferDth`,
 });
 
 export function registerDeferDeath() {

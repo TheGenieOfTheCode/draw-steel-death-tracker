@@ -1,6 +1,6 @@
 # Macro Reference
 
-Death Tracker's macros live in its compendium, in the **Combat Tools** folder of the compendium sidebar.
+Death Tracker's macros live in its compendium, **Death Tracker: Macros**, in the **Combat Tools > Death Tracker** folder of the compendium sidebar.
 
 | Macro | Description |
 |---|---|

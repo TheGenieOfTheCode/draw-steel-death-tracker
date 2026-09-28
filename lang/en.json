@@ -1,3 +1,164 @@
 {
-  "DSDT": {}
+  "DSDT": {
+    "button": {
+      "hideDefeated": "Hide Defeated Tokens",
+      "releasePicker": "Release the Death Picker",
+      "settleDeathsNow": "Settle Deaths Now",
+      "undo": "Undo",
+      "undoAllDeaths": "Undo All"
+    },
+    "chat": {
+      "dt": {
+        "destroyed": "<strong>{name}</strong> was destroyed.",
+        "destroyedMultiple": "{names} were destroyed.",
+        "fallen": "<strong>{name}</strong> has fallen.",
+        "fallenMultiple": "{names} have fallen.",
+        "pickerStuckNote": "A death picker is still open and damage is locked. If it will not close, release it here.",
+        "rankCaptain": "Captain",
+        "rankMinions": "Minions",
+        "rankOthers": "Others",
+        "speaker": "Death Tracker",
+        "summaryDestroyed": "{count} were destroyed.",
+        "summaryDestroyedOne": "1 was destroyed.",
+        "summaryFallen": "{count} have fallen.",
+        "summaryFallenOne": "1 has fallen.",
+        "undoFromCard": "Undo from the damage card"
+      }
+    },
+    "notice": {
+      "conflict": {
+        "minionDeath": "Conflict: the Alternative Minion Defeat UI handles defeated minions, so Draw Steel: Target Damage's Minion Damage Automation has been turned off. Running both processes every defeated minion twice."
+      },
+      "dt": {
+        "deferAlreadyInSquad": "{other} in {squad} already has Death Deferred, and only one minion per squad can. The status was removed.",
+        "forcedDeathsAnyway": "{names} fell regardless: that death was not one of the choices.",
+        "gmOnly": "Revive is a GM-only tool.",
+        "lockedByPicker": "A death picker is open. Damage is locked until it is answered.",
+        "noDefeated": "No defeated creatures on the board.",
+        "noSkulls": "No defeated creatures found.",
+        "noSkullsSelected": "No defeated creatures selected.",
+        "noTargetsSelected": "No targets selected.",
+        "noValidTargets": "No valid targets found on the board.",
+        "nothingToSettle": "No deaths are waiting to be settled.",
+        "pickDeathsCancelled": "Death selection cancelled.",
+        "pickDeathsInstruction": "SELECT DEATHS | {summary} | Click to select. Enter or double-click to confirm. Escape to cancel.",
+        "pickerAtLimit": "{group}: already at {count}. Deselect one first.",
+        "pickerLockReleased": "Death picker released and damage unlocked.",
+        "pickerMustDie": "{name} took the damage and cannot be deselected.",
+        "pickerTokensAlreadyDead": "Death picker cancelled: selected tokens are already dead. The deaths were processed automatically.",
+        "pickerWrongCount": "Please select additional targets: {summary}.",
+        "pwkCancelled": "POWER WORD: KILL cancelled.",
+        "pwkCannotDeselect": "{name} took the damage and cannot be deselected.",
+        "pwkSelectExactly": "You must select exactly {max} target{s}.",
+        "raiseDeadCancelled": "Raise Dead cancelled.",
+        "revived": "{name} has been revived!",
+        "selectionCancelled": "Selection cancelled.",
+        "tokenGone": "{name} is no longer on this scene.",
+        "tokenNotFound": "Token not found on scene."
+      },
+      "playerCannotUndoDamage": "Undoing this would revive a defeated target, which players cannot do. Enable \"Players Can Undo Deaths Their Owned Actors Caused\" in Compatibility settings.",
+      "squads": {
+        "noCaptainCandidates": "No valid captain candidates found for {group}.",
+        "squadGone": "That squad is no longer in the encounter."
+      }
+    },
+    "panel": {
+      "title": {
+        "DeathTrackerSettings": "Death Tracker Settings"
+      }
+    },
+    "picker": {
+      "pickCount": "Pick up to {max} target{s} · {n} selected",
+      "selectedCount": "{n} selected",
+      "titleDeath": "Death Picker",
+      "titleRaise": "Raise Dead"
+    },
+    "setting": {
+      "autoAssignDamagedMinion": {
+        "hint": "When a squad loses only part of its Stamina, the minions that were hit are the ones that die. Turn it off to decide those yourself; a whole squad going down is still handled for you.",
+        "name": "Auto-Assign Damaged Minion on Death"
+      },
+      "batchAnimationSafety": {
+        "hint": "Skip the fade when eight or more creatures fall at once, to keep things smooth.",
+        "name": "Skip Animation on Mass Kill"
+      },
+      "cedeDeathPickerToGM": {
+        "hint": "Let the Director choose who dies instead of you.",
+        "name": "Let Director Pick Deaths"
+      },
+      "cleanOrphanedCombatants": {
+        "hint": "Tidy away Combat Tracker entries for creatures that are no longer there, and keep a squad’s Stamina in step as its minions die. Best left on.",
+        "name": "Clean Up Orphaned Combat Tracker Entries"
+      },
+      "clearEffectsOnRevive": {
+        "hint": "A revived creature comes back free of its conditions and effects.",
+        "name": "Clear Effects on Revive"
+      },
+      "clearSkullsOnCombatEnd": {
+        "hint": "Clear the fallen off the map when the encounter ends.",
+        "name": "Clear Defeated Tokens at Combat End"
+      },
+      "deathAnimationDuration": {
+        "hint": "How long a creature takes to fade out as it falls. Set it to 0 to skip.",
+        "name": "Death Animation Duration (ms)"
+      },
+      "deathMarkerEnabled": {
+        "hint": "Mark the spot where a creature fell. The mark follows if it is moved, and goes when it is revived.",
+        "name": "Show Death Marker"
+      },
+      "deathMarkerIcon": {
+        "hint": "The image used to mark where a creature fell.",
+        "name": "Death Marker Icon"
+      },
+      "deathPickerDimAll": {
+        "hint": "Faintly mark every minion you could pick, so the choices are easy to see. Turn it off for a cleaner map.",
+        "name": "Dim Highlight All Candidates"
+      },
+      "deathTrackerSettings": {
+        "hint": "The death animation, clearing the fallen when an encounter ends, what a revival brings back, and how minion deaths are decided.",
+        "label": "Configure Death Tracker",
+        "name": "Death Tracker Settings"
+      },
+      "gmControlsAllDeathPickers": {
+        "hint": "The Director always chooses who dies, even when a player dealt the damage.",
+        "name": "Director Controls All Death Picks"
+      },
+      "overrideMinionDefeat": {
+        "hint": "Let this module work out which minions die, instead of the system asking you.",
+        "name": "Alternative Minion Defeat UI"
+      },
+      "pickDeathsEnabled": {
+        "hint": "Ask who dies when it is not clear, by picking minions on the map. Whoever dealt the damage chooses. Turn it off and the deaths are assigned for you.",
+        "name": "Pick Ambiguous Deaths"
+      },
+      "playerCanUndoCausedDeaths": {
+        "hint": "Players can undo a death they caused, from the chat message that reports it. Deaths dealt from a damage card are undone on the card itself.",
+        "name": "Players Can Undo Deaths Their Owned Actors Caused"
+      },
+      "suppressTrackerAutoDefeat": {
+        "hint": "Let this module decide when a creature dies, rather than the Combat Tracker calling it dead the moment its Stamina reaches 0. Without this the same death is announced twice and Death Deferred cannot hold.",
+        "name": "Own Death Instead of the Combat Tracker"
+      },
+      "debugMode": {
+        "name": "Debug Mode",
+        "hint": "Log what Death Tracker is doing to the console, and show its debug settings. Leave it off in play."
+      }
+    },
+    "status": {
+      "deferDeath": "Death Deferred",
+      "deferDeathDescription": "<p>This creature does not die while this is on it. It can sit at 0 Stamina, keeping its token and its place in the order, until the status is removed. A squad minion carrying it is left out of the squad's deaths rather than cancelling one, and only one minion per squad can have it at a time.</p>"
+    },
+    "tooltip": {
+      "pingDead": "Left click to ping {name}",
+      "pingDeadCaptain": "Left click to ping {name}. Right click to hand on the crown.",
+      "releasePicker": "Close any open death picker and unlock damage for everyone",
+      "reviveGroup": "Bring this whole group back",
+      "settleDeathsNow": "Stop waiting for the rest of the damage and settle this squad now",
+      "undoRevives": "Undoing this revives {names}",
+      "undoRevivesUnknown": "Undoing this revives the fallen"
+    },
+    "statusGroup": {
+      "deathTracker": "Death Tracker"
+    }
+  }
 }

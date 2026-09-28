@@ -5,7 +5,7 @@
 
 *The Reaper's digital assistant.*
 
-A Foundry VTT module for the Draw Steel system that handles defeat in combat, from the moment a creature falls to the moment it gets back up.
+A Foundry VTT module for the Draw Steel system that handles defeat in combat, making sure each creature is marked defeated when it should be, and can be brought back if needed.
 
 **Requires Foundry v14 and the Draw Steel system.**
 

@@ -19,12 +19,6 @@ Every Death Tracker setting, with its default. Open them from **Settings > Modul
 | Clean Up Orphaned Combat Tracker Entries | On | Tidy away Combat Tracker entries for creatures that are no longer there, and keep a squad’s Stamina in step as its minions die. Best left on. |
 | Players Can Undo Deaths Their Owned Actors Caused | On | Players can undo a death they caused, from the chat message that reports it. Deaths dealt from a damage card are undone on the card itself. |
 
-## Debug
-
-| Setting | Default | What It Does |
-|---|---|---|
-| Manual Mode | Off | Step through every death and revival in chat, approving or undoing each stage. For testing, not for play. |
-
 ## Notes
 
 - A few settings are per client rather than per world, meaning each player sets their own.

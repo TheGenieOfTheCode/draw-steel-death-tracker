@@ -25,7 +25,7 @@ export function registerDeferDeath() {
     const status = CONFIG.statusEffects?.[DEFER_DEATH];
     if (!status?.rule) return;
     if (await fromUuid(status.rule).catch(() => null)) return;
-    console.warn(`DSCT | defer death | rules page missing, tooltip disabled: ${status.rule}`);
+    console.warn(`Death Tracker | defer death | rules page missing, tooltip disabled: ${status.rule}`);
     delete status.rule;
   });
   registerDefeatBlock();
@@ -59,7 +59,7 @@ function registerDefeatBlock() {
   Hooks.on('preUpdateCombatant', (combatant, changes) => {
     if (changes?.defeated !== true) return;
     if (!isDeathDeferred(combatant?.actor)) return;
-    if (setting('debugMode')) console.log(`DSCT | DEFER | refused the defeated flag on ${combatant.actor.name}`);
+    if (setting('debugMode')) console.log(`Death Tracker | DEFER | refused the defeated flag on ${combatant.actor.name}`);
     return false;
   });
 }
@@ -82,7 +82,7 @@ function registerReleaseRecheck() {
         .filter(a => a && !a.statuses?.has(_defeatedId()));
       const indiv = live[0]?.system?.stamina?.max || 1;
       const owed = live.length - Math.ceil((group.system?.staminaValue ?? 0) / indiv);
-      if (setting('debugMode')) console.log(`DSCT | DEFER | released ${actor.name}: live=${live.length} pool=${group.system?.staminaValue} owed=${owed}`);
+      if (setting('debugMode')) console.log(`Death Tracker | DEFER | released ${actor.name}: live=${live.length} pool=${group.system?.staminaValue} owed=${owed}`);
       if (owed <= 0) return;
     } else if ((actor.system?.stamina?.value ?? 1) > 0) {
       return;

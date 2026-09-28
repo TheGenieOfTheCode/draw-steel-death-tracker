@@ -31,7 +31,7 @@ function _makeFilters(token) {
   const Color = _ColorMatrixFilter();
   const Alpha = _AlphaFilter();
   if (!Color || !Alpha) {
-    console.warn('DSCT | death visuals | PIXI is missing a filter this needs; the dead will look alive');
+    console.warn('Death Tracker | death visuals | PIXI is missing a filter this needs; the dead will look alive');
     return null;
   }
   const set = { color: new Color(), alpha: new Alpha() };
@@ -272,9 +272,9 @@ async function _migrateStoredDeathLook() {
       updates.push(data);
     }
     if (!updates.length) continue;
-    console.log(`DSCT | death visuals | restoring ${updates.length} token(s) on "${scene.name}" that stored the old death look`);
+    console.log(`Death Tracker | death visuals | restoring ${updates.length} token(s) on "${scene.name}" that stored the old death look`);
     await scene.updateEmbeddedDocuments('Token', updates)
-      .catch((err) => console.error('DSCT | death visuals | could not restore stored death looks:', err));
+      .catch((err) => console.error('Death Tracker | death visuals | could not restore stored death looks:', err));
   }
 }
 

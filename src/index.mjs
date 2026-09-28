@@ -54,7 +54,7 @@ export const registerDeathTrackerSockets = (socket) => {
   });
 
   socket.register('dt.reportDamagedToken', (tokenId, userId) => {
-    if (setting('debugMode')) console.log(`DSCT | DT | reportDamagedToken received: ${tokenId} from user ${userId}`);
+    if (setting('debugMode')) console.log(`Death Tracker | DT | reportDamagedToken received: ${tokenId} from user ${userId}`);
     _addDamagedToken(tokenId, userId);
   });
 

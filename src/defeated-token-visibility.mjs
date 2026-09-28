@@ -15,7 +15,7 @@ const isDefeatedAndHiding = (tokenDoc) =>
 
 export const registerDefeatedTokenVisibility = () => {
   const usingLibWrapper = !!game.modules.get('lib-wrapper')?.active;
-  if (DBG()) console.log(`DSCT | DTV | init -- libWrapper: ${usingLibWrapper}`);
+  if (DBG()) console.log(`Death Tracker | DTV | init -- libWrapper: ${usingLibWrapper}`);
 
   if (usingLibWrapper) {
     libWrapper.register(M, 'CONFIG.Token.objectClass.prototype.isVisible',
@@ -100,11 +100,11 @@ export const registerDefeatedTokenVisibility = () => {
     if ((readFlag(game.user, 'hideDefeated') ?? false) === true) token.release();
 
     const graceDuration = setting('deathAnimationDuration') + 500;
-    if (DBG()) console.log(`DSCT | DTV | death grace start token=${token.document?.name} duration=${graceDuration}ms`);
+    if (DBG()) console.log(`Death Tracker | DTV | death grace start token=${token.document?.name} duration=${graceDuration}ms`);
     _deathGrace.add(token.document.id);
     setTimeout(() => {
       _deathGrace.delete(token.document.id);
-      if (DBG()) console.log(`DSCT | DTV | death grace expired token=${token.document?.name}`);
+      if (DBG()) console.log(`Death Tracker | DTV | death grace expired token=${token.document?.name}`);
       activateTokenLayer();
     }, graceDuration);
   });
@@ -135,7 +135,7 @@ export const registerDefeatedTokenVisibility = () => {
 const refreshDefeatedVisibility = () => {
   const hiding = (readFlag(game.user, 'hideDefeated') ?? false) === true;
   const defeatedStatusId = CONFIG.specialStatusEffects?.DEFEATED ?? 'dead';
-  if (DBG()) console.log(`DSCT | DTV | refresh -- hiding=${hiding} tokens=${canvas.tokens.placeables.length}`);
+  if (DBG()) console.log(`Death Tracker | DTV | refresh -- hiding=${hiding} tokens=${canvas.tokens.placeables.length}`);
 
   if (hiding) {
     for (const t of canvas.tokens.placeables) {
@@ -151,7 +151,7 @@ const refreshDefeatedVisibility = () => {
 export const toggleHideDefeated = async () => {
   const current = (readFlag(game.user, 'hideDefeated') ?? false) === true;
   const next = !current;
-  if (DBG()) console.log(`DSCT | DTV | toggle ${current} -> ${next}`);
+  if (DBG()) console.log(`Death Tracker | DTV | toggle ${current} -> ${next}`);
   await writeFlag(game.user, 'hideDefeated', next);
   refreshDefeatedVisibility();
 };

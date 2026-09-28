@@ -155,12 +155,12 @@ const DEATH_BATCH_MS = 200;
 const _processTokenDeath = async (token, actor, { batchEntries = null } = {}) => {
   if (!window._deathTrackerLocks) window._deathTrackerLocks = new Set();
   if (window._deathTrackerLocks.has(token.id)) {
-    if (setting('debugMode')) console.log(`DSCT | DT | Lock already held for ${actor.name} (${token.id}), skipping.`);
+    if (setting('debugMode')) console.log(`Death Tracker | DT | Lock already held for ${actor.name} (${token.id}), skipping.`);
     return;
   }
   window._deathTrackerLocks.add(token.id);
-  if (setting('debugMode')) console.log(`DSCT | DT | Lock acquired for ${actor.name} (${token.id}).`);
-  setTimeout(() => { window._deathTrackerLocks.delete(token.id); if (setting('debugMode')) console.log(`DSCT | DT | Lock released for ${actor.name} (${token.id}).`); }, 2000);
+  if (setting('debugMode')) console.log(`Death Tracker | DT | Lock acquired for ${actor.name} (${token.id}).`);
+  setTimeout(() => { window._deathTrackerLocks.delete(token.id); if (setting('debugMode')) console.log(`Death Tracker | DT | Lock released for ${actor.name} (${token.id}).`); }, 2000);
 
   if (window._activeGrabs) {
     for (const [gid, grab] of [...window._activeGrabs.entries()]) {
@@ -177,12 +177,12 @@ const _processTokenDeath = async (token, actor, { batchEntries = null } = {}) =>
     const frightenedEffect = a.appliedEffects?.find(e => combatToolsFlag(e, 'frightened')?.sourceTokenId === token.id);
     if (frightenedEffect) {
       await safeDelete(frightenedEffect);
-      if (setting('debugMode')) console.log(`DSCT | DT | Removed Frightened from ${a.name} (source ${actor.name} died)`);
+      if (setting('debugMode')) console.log(`Death Tracker | DT | Removed Frightened from ${a.name} (source ${actor.name} died)`);
     }
     const tauntedEffect = a.appliedEffects?.find(e => combatToolsFlag(e, 'taunted')?.sourceTokenId === token.id);
     if (tauntedEffect) {
       await safeDelete(tauntedEffect);
-      if (setting('debugMode')) console.log(`DSCT | DT | Removed Taunted from ${a.name} (source ${actor.name} died)`);
+      if (setting('debugMode')) console.log(`Death Tracker | DT | Removed Taunted from ${a.name} (source ${actor.name} died)`);
     }
   }
 
@@ -225,7 +225,7 @@ const _processTokenDeath = async (token, actor, { batchEntries = null } = {}) =>
       const localTarget = [...game.user.targets].find(t => t.id === token.id);
       if (localTarget) localTarget.setTarget(false, { releaseOthers: false });
     } else {
-      if (setting('debugMode')) console.log(`DSCT | DT | object death: rubblePlaced=${window._dsctRubblePlaced?.has(token.id)}, tokenId=${token.id}`);
+      if (setting('debugMode')) console.log(`Death Tracker | DT | object death: rubblePlaced=${window._dsctRubblePlaced?.has(token.id)}, tokenId=${token.id}`);
 
       if (!window._dsctRubblePlaced?.has(token.id)) {
         const gs   = canvas.grid.size;
@@ -273,7 +273,7 @@ const _drainSwallowedDeaths = async (ourIds) => {
   for (const tokenId of late) {
     const t = canvas.tokens.get(tokenId);
     if (!t?.actor?.statuses?.has('dead')) continue;
-    if (setting('debugMode')) console.log(`DSCT | DT | kill lock: a death landed late, processing ${t.actor.name} (${t.id})`);
+    if (setting('debugMode')) console.log(`Death Tracker | DT | kill lock: a death landed late, processing ${t.actor.name} (${t.id})`);
     await _processTokenDeath(t, t.actor, { batchEntries });
   }
   if (batchEntries.length) flushDeathBatch(batchEntries);
@@ -319,9 +319,9 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
         });
       };
       requestAnimationFrame((now) => _frameLoop(now));
-      console.log(`DSCT | DT | [TIMING] _doKillV3 start (${tokens.length} token(s))`);
+      console.log(`Death Tracker | DT | [TIMING] _doKillV3 start (${tokens.length} token(s))`);
     }
-    const _tm = (label) => { if (_dbgTime) console.log(`DSCT | DT | [TIMING +${(performance.now()-_t0).toFixed(0)}ms] ${label}`); };
+    const _tm = (label) => { if (_dbgTime) console.log(`Death Tracker | DT | [TIMING +${(performance.now()-_t0).toFixed(0)}ms] ${label}`); };
 
     
     
@@ -492,13 +492,13 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
       _stopFrameMonitor = true;
       setTimeout(() => {
         Hooks.off('renderChatMessageHTML', _renderHtmlHookId);
-        console.log(`DSCT | DT | [TIMING +${(performance.now()-_t0).toFixed(0)}ms] _doKillV3 COMPLETE`);
-        console.log(`DSCT | DT | [TIMING] renderChatMessageHTML fired ${_renderHtmlCount}x during death window`);
-        console.log(`DSCT | DT | [TIMING] Dropped frames (>33ms): ${_droppedFrames}, worst: ${_worstFrameMs.toFixed(1)}ms`);
-        if (_droppedFrameLog.length) console.log('DSCT | DT | [TIMING] Frame drops:', _droppedFrameLog.join(' | '));
+        console.log(`Death Tracker | DT | [TIMING +${(performance.now()-_t0).toFixed(0)}ms] _doKillV3 COMPLETE`);
+        console.log(`Death Tracker | DT | [TIMING] renderChatMessageHTML fired ${_renderHtmlCount}x during death window`);
+        console.log(`Death Tracker | DT | [TIMING] Dropped frames (>33ms): ${_droppedFrames}, worst: ${_worstFrameMs.toFixed(1)}ms`);
+        if (_droppedFrameLog.length) console.log('Death Tracker | DT | [TIMING] Frame drops:', _droppedFrameLog.join(' | '));
       }, 500);
     }
-    if (showNotification) ui.notifications.info(tokens.length > 1 ? 'MASS POWER WORD: KILL' : 'POWER WORD: KILL');
+    if (showNotification) ui.notifications.info(game.i18n.localize(tokens.length > 1 ? 'DSDT.notice.dt.pwkMass' : 'DSDT.notice.dt.pwk'));
   } finally {
     for (const id of _myTokenIds) window._dsctManualKillTokenIds.delete(id);
     if (!_prevKillLock) setTimeout(() => { window._dsctKillLockActive = false; _drainSwallowedDeaths(_myTokenIds); }, 1500);
@@ -587,9 +587,9 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
       });
     };
     requestAnimationFrame((now) => _frameLoop(now));
-    console.log(`DSCT | DT | [REVIVE TIMING] _doReviveV3 start (${tokens.length} token(s))`);
+    console.log(`Death Tracker | DT | [REVIVE TIMING] _doReviveV3 start (${tokens.length} token(s))`);
   }
-  const _tm = (label) => { if (_dbgTime) console.log(`DSCT | DT | [REVIVE +${(performance.now()-_t0).toFixed(0)}ms] ${label}`); };
+  const _tm = (label) => { if (_dbgTime) console.log(`Death Tracker | DT | [REVIVE +${(performance.now()-_t0).toFixed(0)}ms] ${label}`); };
 
   
   
@@ -626,7 +626,7 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
   const _settled = await _waitUntil(() => woken.every(({ t, needsStamina, staminaValue }) =>
     !t.actor?.statuses?.has(defeatedStatusId)
     && (!needsStamina || (t.actor.system.stamina?.value ?? 0) >= staminaValue)));
-  if (!_settled) console.warn('DSCT | DT | revival: the board did not catch up with step 2, carrying on anyway');
+  if (!_settled) console.warn('Death Tracker | DT | revival: the board did not catch up with step 2, carrying on anyway');
   _tm('step 2 complete');
   const plan = [];
   for (const t of tokens) {
@@ -716,7 +716,7 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
       if (!validEffectIds.length) continue;
       _tm(`step 4: deleteEmbeddedDocuments ActiveEffect x${validEffectIds.length} -- ${actor.name}`);
       try { await actor.deleteEmbeddedDocuments('ActiveEffect', validEffectIds); }
-      catch (e) { console.warn('DSCT | DT | Minor error clearing effects on revive:', e); }
+      catch (e) { console.warn('Death Tracker | DT | Minor error clearing effects on revive:', e); }
     }
     _tm('step 4: effects done');
   }
@@ -724,7 +724,7 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
   if (tokens.length === 1) {
     ui.notifications.info(game.i18n.format('DSDT.notice.dt.revived', { name: tokens[0].actor.name }));
   } else if (tokens.length > 1) {
-    ui.notifications.info(`Revived ${formatNames(tokens.map(t => t.actor.name))}.`);
+    ui.notifications.info(game.i18n.format('DSDT.notice.dt.revivedMany', { names: formatNames(tokens.map(t => t.actor.name)) }));
   }
   await deleteDeathMessagesFor(tokens.map(t => t.id));
 
@@ -734,9 +734,9 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
   if (_dbgTime) {
     _stopFrameMonitor = true;
     setTimeout(() => {
-      console.log(`DSCT | DT | [REVIVE +${(performance.now()-_t0).toFixed(0)}ms] _doReviveV3 COMPLETE`);
-      console.log(`DSCT | DT | [REVIVE] Dropped frames (>33ms): ${_droppedFrames}, worst: ${_worstFrameMs.toFixed(1)}ms`);
-      if (_droppedFrameLog.length) console.log('DSCT | DT | [REVIVE] Frame drops:', _droppedFrameLog.join(' | '));
+      console.log(`Death Tracker | DT | [REVIVE +${(performance.now()-_t0).toFixed(0)}ms] _doReviveV3 COMPLETE`);
+      console.log(`Death Tracker | DT | [REVIVE] Dropped frames (>33ms): ${_droppedFrames}, worst: ${_worstFrameMs.toFixed(1)}ms`);
+      if (_droppedFrameLog.length) console.log('Death Tracker | DT | [REVIVE] Frame drops:', _droppedFrameLog.join(' | '));
     }, 500);
   }
 };
@@ -756,7 +756,7 @@ export const _runManualModePicker = (contexts) => new Promise((resolve) => {
     return standing.length > 0 && Math.min(ctx.numToKill, standing.length) > 0;
   });
   if (!_worthAsking) {
-    if (setting('debugMode')) console.log('DSCT | DT | picker had nothing left to ask, not opening');
+    if (setting('debugMode')) console.log('Death Tracker | DT | picker had nothing left to ask, not opening');
     resolve(null);
     return;
   }
@@ -1236,7 +1236,7 @@ const _flushManualKillAccumulator = async () => {
     if (acc) { clearTimeout(acc.timer); acc.timer = setTimeout(_flushManualKillAccumulator, _MANUAL_KILL_ACCUM_MS); }
     return;
   }
-  if (applying) console.warn(`DSCT | DT | kill flush stopped waiting on ${applying} and is asking now`);
+  if (applying) console.warn(`Death Tracker | DT | kill flush stopped waiting on ${applying} and is asking now`);
   _flushHolds = 0;
   _forcedHolds = 0;
   window._dsctSettleNow = false;
@@ -1312,7 +1312,7 @@ function _suppressSystemMinionPrompt() {
 
   const apps = ds?.applications?.apps;
   if (!apps?.DefeatedMinionSelection) {
-    console.warn('DSCT | DT | could not find the system\'s defeated minion prompt to suppress it, so the table may be asked twice who dies');
+    console.warn('Death Tracker | DT | could not find the system\'s defeated minion prompt to suppress it, so the table may be asked twice who dies');
     return;
   }
   apps.DefeatedMinionSelection.create = async () => null;
@@ -1320,7 +1320,7 @@ function _suppressSystemMinionPrompt() {
   const _closeIfItGetsThrough = (app) => {
     if (!setting('overrideMinionDefeat')) return;
     if (!/DefeatedMinionSelection/.test(app?.constructor?.name ?? '')) return;
-    console.warn('DSCT | DT | the system\'s defeated minion prompt opened despite being suppressed, closing it');
+    console.warn('Death Tracker | DT | the system\'s defeated minion prompt opened despite being suppressed, closing it');
     app.close?.();
   };
   Hooks.on('renderApplicationV2', _closeIfItGetsThrough);
@@ -1394,7 +1394,7 @@ export function registerDeathTrackerHooks() {
     if (!actor || _isDTExcluded(actor)) return;
     
     if (isDeathDeferred(actor)) {
-      if (setting('debugMode')) console.log(`DSCT | DT | death deferred for ${actor.name}, not processing`);
+      if (setting('debugMode')) console.log(`Death Tracker | DT | death deferred for ${actor.name}, not processing`);
       return;
     }
 
@@ -1404,7 +1404,7 @@ export function registerDeathTrackerHooks() {
     
     
     if (window._dsctKillLockActive) {
-      if (setting('debugMode')) console.log(`DSCT | DT | createActiveEffect: kill lock active, skipping (${actor.name} ${token.id})`);
+      if (setting('debugMode')) console.log(`Death Tracker | DT | createActiveEffect: kill lock active, skipping (${actor.name} ${token.id})`);
       if (!window._dsctKillLockSkipped) window._dsctKillLockSkipped = new Set();
       window._dsctKillLockSkipped.add(token.id);
       return;
@@ -1413,7 +1413,7 @@ export function registerDeathTrackerHooks() {
     
     if (window._dsctManualKillTokenIds?.has(token.id)) return;
 
-    if (setting('debugMode')) console.log(`DSCT | DT | createActiveEffect: queuing dead-status trigger for ${actor.name} (${token.id})`);
+    if (setting('debugMode')) console.log(`Death Tracker | DT | createActiveEffect: queuing dead-status trigger for ${actor.name} (${token.id})`);
     _queueManualKillTargets(
       new Set([token.id]),
       [],
@@ -1432,18 +1432,18 @@ export function registerDeathTrackerHooks() {
     const clamped = Math.min(Math.max(newVal, 0), maxHP);
     if (clamped === newVal) return;
 
-    if (setting('debugMode')) console.log(`DSCT | DT | clamp guard | ${newVal} corrected to ${clamped} (alive=${alive.length} x ${indivHP})`);
+    if (setting('debugMode')) console.log(`Death Tracker | DT | clamp guard | ${newVal} corrected to ${clamped} (alive=${alive.length} x ${indivHP})`);
     changed.system.staminaValue = clamped;
   });
 
   const _onSquadPoolChanged = async (group, changes, options) => {
 
     if (isOurTransition(options)) {
-      if (setting('debugMode')) console.log(`DSCT | DT | updateCombatantGroup: ${options[TRANSITION].id}, this module's own write, standing down`);
+      if (setting('debugMode')) console.log(`Death Tracker | DT | updateCombatantGroup: ${options[TRANSITION].id}, this module's own write, standing down`);
       return;
     }
     const dbg = setting('debugMode');
-    if (dbg) console.log('DSCT | DT | updateCombatantGroup fired', { groupType: group.type, isGM: game.users.activeGM?.isSelf, override: setting('overrideMinionDefeat'), changes });
+    if (dbg) console.log('Death Tracker | DT | updateCombatantGroup fired', { groupType: group.type, isGM: game.users.activeGM?.isSelf, override: setting('overrideMinionDefeat'), changes });
     if (!setting('overrideMinionDefeat') || !game.users.activeGM?.isSelf) return;
 
     
@@ -1455,7 +1455,7 @@ export function registerDeathTrackerHooks() {
       const ids = dstdOpts.minionDeathTargetIds?.length ? dstdOpts.minionDeathTargetIds
         : dstdOpts.primaryTargetId ? [dstdOpts.primaryTargetId] : [];
       for (const id of ids) if (id) _addDamagedToken(id);
-      if (dbg) console.log(`DSCT | DT | DSTD damage detected, seeded damaged tokens: [${ids.join(',')}]`);
+      if (dbg) console.log(`Death Tracker | DT | DSTD damage detected, seeded damaged tokens: [${ids.join(',')}]`);
     }
 
     if (window._dsctKillLockActive) {
@@ -1470,7 +1470,7 @@ export function registerDeathTrackerHooks() {
     }
 
     const newHp = changes.system?.staminaValue ?? changes.system?.stamina?.value;
-    if (dbg) console.log('DSCT | DT | newHp', newHp, 'group.type', group.type);
+    if (dbg) console.log('Death Tracker | DT | newHp', newHp, 'group.type', group.type);
     if (newHp === undefined) return;
     if (group.type !== 'squad') return;
 
@@ -1480,7 +1480,7 @@ export function registerDeathTrackerHooks() {
     if (declinedAt !== undefined) {
       const pool = group.system?.staminaValue ?? null;
       if (declinedAt === pool) {
-        if (dbg) console.log(`DSCT | DT | "${group.name}" was left standing at ${pool}, not asking again`);
+        if (dbg) console.log(`Death Tracker | DT | "${group.name}" was left standing at ${pool}, not asking again`);
         clearDeathPending(livingTokensOf(group));
         return;
       }
@@ -1495,7 +1495,7 @@ export function registerDeathTrackerHooks() {
 
     const defeatedStatusId = CONFIG.specialStatusEffects?.DEFEATED ?? 'dead';
     const minions = Array.from(group.members ?? []).filter(m => m?.actor?.system?.isMinion);
-    if (dbg) console.log('DSCT | DT | minions:', minions.map(m => ({ name: m?.actor?.name, isMinion: m?.actor?.system?.isMinion })));
+    if (dbg) console.log('Death Tracker | DT | minions:', minions.map(m => ({ name: m?.actor?.name, isMinion: m?.actor?.system?.isMinion })));
 
     if (minions.length === 0) { window._squadDeathLocks.delete(group.id); return; }
 
@@ -1530,9 +1530,9 @@ export function registerDeathTrackerHooks() {
       
       const pickable = liveMinions.filter(m => !isDeathDeferred(m.actor));
       const deferredCount = liveMinions.length - pickable.length;
-      if (dbg) console.log(`DSCT | DT | DEFER | processDeath reached: live=${liveMinions.length} pickable=${pickable.length} deferred=${deferredCount} effectiveNumToKill=${effectiveNumToKill}`);
+      if (dbg) console.log(`Death Tracker | DT | DEFER | processDeath reached: live=${liveMinions.length} pickable=${pickable.length} deferred=${deferredCount} effectiveNumToKill=${effectiveNumToKill}`);
       if (pickable.length === 0) {
-        if (dbg) console.log('DSCT | DT | DEFER | every living minion has its death deferred, nothing to do');
+        if (dbg) console.log('Death Tracker | DT | DEFER | every living minion has its death deferred, nothing to do');
         return;
       }
       
@@ -1540,7 +1540,7 @@ export function registerDeathTrackerHooks() {
 
       scheduleSquadReconcile(group, { delay: 1500 });
 
-      if (dbg) console.log(`DSCT | DT | processDeath: origNumToKill=${numToKill} effectiveNumToKill=${effectiveNumToKill} killCount=${killCount} deferred=${deferredCount} freshHp=${freshHp} damagedTokenIds=[${damagedTokenIds.join(',')}]`);
+      if (dbg) console.log(`Death Tracker | DT | processDeath: origNumToKill=${numToKill} effectiveNumToKill=${effectiveNumToKill} killCount=${killCount} deferred=${deferredCount} freshHp=${freshHp} damagedTokenIds=[${damagedTokenIds.join(',')}]`);
 
       if (!setting('autoAssignDamagedMinion')) {
         
@@ -1560,9 +1560,9 @@ export function registerDeathTrackerHooks() {
         _queueManualKillTargets(new Set(pickable.map(m => m.tokenId).filter(Boolean)), extraLines);
         return;
       }
-      if (dbg) console.log(`DSCT | DT | DEFER | eligibleDamaged=${eligibleDamaged.length} killCount=${killCount}`);
+      if (dbg) console.log(`Death Tracker | DT | DEFER | eligibleDamaged=${eligibleDamaged.length} killCount=${killCount}`);
       if (eligibleDamaged.length === killCount) {
-        if (dbg) console.log('DSCT | DT | DEFER | branch: oneMustDie, the damaged are exactly the toll');
+        if (dbg) console.log('Death Tracker | DT | DEFER | branch: oneMustDie, the damaged are exactly the toll');
         oneMustDie(eligibleDamaged, extraLines);
         return;
       }
@@ -1602,7 +1602,7 @@ export function registerDeathTrackerHooks() {
         .filter(m => m.tokenId && !eligibleDamaged.includes(m.tokenId))
         .map(m => m.tokenId);
       const sortedUndamaged = _sortCandidates(undamaged, new Set(eligibleDamaged));
-      if (dbg) console.log(`DSCT | DT | DEFER | branch: picker, locked=${eligibleDamaged.length} undamagedCandidates=${undamaged.length} stillToFind=${killCount - eligibleDamaged.length}`);
+      if (dbg) console.log(`Death Tracker | DT | DEFER | branch: picker, locked=${eligibleDamaged.length} undamagedCandidates=${undamaged.length} stillToFind=${killCount - eligibleDamaged.length}`);
       _queueManualPickerContext({
         lockedIds:      new Set(eligibleDamaged),
         preSelectedIds: new Set(sortedUndamaged.slice(0, killCount - eligibleDamaged.length)),
@@ -1682,12 +1682,12 @@ export function registerDeathTrackerHooks() {
     if (waits > RECONCILE_MAX_WAITS) {
       _reconcileWaits.delete(group.id);
       _impatient.add(group.id);
-      console.warn(`DSCT | DT | squad reconcile stopped waiting on ${why} for "${group.name ?? group.id}" and is settling the toll from the pool as it stands`);
+      console.warn(`Death Tracker | DT | squad reconcile stopped waiting on ${why} for "${group.name ?? group.id}" and is settling the toll from the pool as it stands`);
       scheduleSquadReconcile(group, { delay: 50 });
       return;
     }
     _reconcileWaits.set(group.id, waits);
-    if (setting('debugMode')) console.log(`DSCT | DT | squad reconcile waiting on ${why} (${waits})`);
+    if (setting('debugMode')) console.log(`Death Tracker | DT | squad reconcile waiting on ${why} (${waits})`);
     scheduleSquadReconcile(group);
   };
 
@@ -1818,13 +1818,13 @@ export function registerDeathTrackerHooks() {
   Hooks.on('deleteToken', async (tokenDoc) => {
     if (!game.users.activeGM?.isSelf) return;
     const dbg = setting('debugMode');
-    if (dbg) console.log(`DSCT | deleteToken | fired for token id=${tokenDoc.id} name=${tokenDoc.name}`);
+    if (dbg) console.log(`Death Tracker | deleteToken | fired for token id=${tokenDoc.id} name=${tokenDoc.name}`);
     if (setting('cleanOrphanedCombatants')) {
       for (const combat of game.combats.contents) {
         if (_deletingCombatIds.has(combat.id)) continue;
         try {
           const orphaned = combat.combatants.filter(c => c.tokenId === tokenDoc.id);
-          if (dbg) console.log(`DSCT | deleteToken | combat ${combat.id}: found ${orphaned.length} matching combatants`);
+          if (dbg) console.log(`Death Tracker | deleteToken | combat ${combat.id}: found ${orphaned.length} matching combatants`);
           const affectedGroupIds = new Set(orphaned.map(c => c._source?.group).filter(Boolean));
           if (orphaned.length) await combat.deleteEmbeddedDocuments('Combatant', orphaned.map(c => c.id));
           if (affectedGroupIds.size) {
@@ -1837,11 +1837,11 @@ export function registerDeathTrackerHooks() {
                 if (group) await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - indivHP) });
               }
             }
-            if (dbg) console.log(`DSCT | deleteToken | empty groups after combatant removal: [${emptyGroups.join(', ') || 'none'}]`);
+            if (dbg) console.log(`Death Tracker | deleteToken | empty groups after combatant removal: [${emptyGroups.join(', ') || 'none'}]`);
             if (emptyGroups.length) await combat.deleteEmbeddedDocuments('CombatantGroup', emptyGroups);
           }
         } catch (err) {
-          if (dbg) console.warn(`DSCT | deleteToken | skipped stale combat ${combat.id}:`, err.message);
+          if (dbg) console.warn(`Death Tracker | deleteToken | skipped stale combat ${combat.id}:`, err.message);
         }
       }
     }
@@ -1852,17 +1852,17 @@ export function registerDeathTrackerHooks() {
       readFlag(t, 'objectTokenId') === tokenDoc.id
     ) ?? [];
     for (const tile of rubble) tile.delete().catch(() => {});
-    if (setting('debugMode') && rubble.length > 0) console.log(`DSCT | DT | Deleted ${rubble.length} rubble tile(s) for object token ${tokenDoc.id}.`);
+    if (setting('debugMode') && rubble.length > 0) console.log(`Death Tracker | DT | Deleted ${rubble.length} rubble tile(s) for object token ${tokenDoc.id}.`);
   });
 
   Hooks.on('deleteActor', async (actor) => {
     if (!game.users.activeGM?.isSelf || !setting('cleanOrphanedCombatants')) return;
     const dbg = setting('debugMode');
-    if (dbg) console.log(`DSCT | deleteActor | fired for actor name=${actor.name} id=${actor.id}`);
+    if (dbg) console.log(`Death Tracker | deleteActor | fired for actor name=${actor.name} id=${actor.id}`);
     for (const combat of game.combats.contents) {
       try {
         const orphaned = combat.combatants.filter(c => c.actorId === actor.id);
-        if (dbg) console.log(`DSCT | deleteActor | combat ${combat.id}: found ${orphaned.length} matching combatants`);
+        if (dbg) console.log(`Death Tracker | deleteActor | combat ${combat.id}: found ${orphaned.length} matching combatants`);
         const affectedGroupIds = new Set(orphaned.map(c => c._source?.group).filter(Boolean));
         if (orphaned.length) await combat.deleteEmbeddedDocuments('Combatant', orphaned.map(c => c.id));
         if (affectedGroupIds.size) {
@@ -1878,11 +1878,11 @@ export function registerDeathTrackerHooks() {
               }
             }
           }
-          if (dbg) console.log(`DSCT | deleteActor | empty groups after combatant removal: [${emptyGroups.join(', ') || 'none'}]`);
+          if (dbg) console.log(`Death Tracker | deleteActor | empty groups after combatant removal: [${emptyGroups.join(', ') || 'none'}]`);
           if (emptyGroups.length) await combat.deleteEmbeddedDocuments('CombatantGroup', emptyGroups);
         }
       } catch (err) {
-        if (dbg) console.warn(`DSCT | deleteActor | skipped stale combat ${combat.id}:`, err.message);
+        if (dbg) console.warn(`Death Tracker | deleteActor | skipped stale combat ${combat.id}:`, err.message);
       }
     }
   });
@@ -1945,13 +1945,9 @@ export function registerDeathTrackerHooks() {
 
 }
 
-const formatNames = (names) => {
-  if (names.length === 1) return `<strong>${names[0]}</strong>`;
-  if (names.length === 2) return `<strong>${names[0]}</strong> and <strong>${names[1]}</strong>`;
-  const last = names[names.length - 1];
-  const rest = names.slice(0, -1).map(n => `<strong>${n}</strong>`).join(', ');
-  return `${rest}, and <strong>${last}</strong>`;
-};
+const formatNames = (names) =>
+  new Intl.ListFormat(game.i18n.lang, { style: 'long', type: 'conjunction' })
+    .format(names.map(n => `<strong>${n}</strong>`));
 
 const cleanOrphanedCombatants = async () => {
   if (!game.users.activeGM?.isSelf) return;
@@ -1959,14 +1955,14 @@ const cleanOrphanedCombatants = async () => {
   for (const combat of game.combats.contents) {
     if (dbg) {
       for (const c of combat.combatants) {
-        console.log(`DSCT | orphan-check | combatant id=${c.id} name=${c.name} actorId=${c.actorId} tokenId=${c.tokenId} token=${c.token?.id ?? 'NULL'} actor=${c.actor?.name ?? 'NULL'}`);
+        console.log(`Death Tracker | orphan-check | combatant id=${c.id} name=${c.name} actorId=${c.actorId} tokenId=${c.tokenId} token=${c.token?.id ?? 'NULL'} actor=${c.actor?.name ?? 'NULL'}`);
       }
     }
     const orphaned = combat.combatants.filter(c => !c.token || !c.actor).map(c => c.id);
-    if (dbg) console.log(`DSCT | orphan-check | orphaned combatants: [${orphaned.join(', ') || 'none'}]`);
+    if (dbg) console.log(`Death Tracker | orphan-check | orphaned combatants: [${orphaned.join(', ') || 'none'}]`);
     if (orphaned.length) await combat.deleteEmbeddedDocuments('Combatant', orphaned);
     const emptyGroups = combat.groups.contents.filter(g => !Array.from(g.members ?? []).length).map(g => g.id);
-    if (dbg) console.log(`DSCT | orphan-check | empty groups: [${emptyGroups.join(', ') || 'none'}]`);
+    if (dbg) console.log(`Death Tracker | orphan-check | empty groups: [${emptyGroups.join(', ') || 'none'}]`);
     if (emptyGroups.length) await combat.deleteEmbeddedDocuments('CombatantGroup', emptyGroups);
   }
 };
@@ -2359,7 +2355,7 @@ const executeRevival = async (tokenId, { skipGroupHpUpdate = false } = {}) => {
         try {
           await actor.deleteEmbeddedDocuments("ActiveEffect", validEffectIds);
         } catch (e) {
-          console.warn("DSCT | DT | Minor error clearing remaining effects: ", e);
+          console.warn("Death Tracker | DT | Minor error clearing remaining effects: ", e);
         }
       }
     }
@@ -2475,10 +2471,10 @@ export const runPowerWordKillUI = async (options = {}) => {
   const selectedTokens = new Set();
   let hoveredNpcId = null;
 
-  if (setting('debugMode')) console.log(`DSCT | DT | PWK start: autoAssign=${autoAssign} maxTargets=${maxTargets} damagedTokenIds=[${damagedTokenIds.join(',')}] npcs=[${npcs.map(t=>t.id).join(',')}]`);
+  if (setting('debugMode')) console.log(`Death Tracker | DT | PWK start: autoAssign=${autoAssign} maxTargets=${maxTargets} damagedTokenIds=[${damagedTokenIds.join(',')}] npcs=[${npcs.map(t=>t.id).join(',')}]`);
   if (autoAssign && damagedTokenIds.length > 0) {
     const eligibleDamaged = damagedTokenIds.filter(id => npcs.find(t => t.id === id));
-    if (setting('debugMode')) console.log(`DSCT | DT | PWK autoAssign: eligibleDamaged=[${eligibleDamaged.join(',')}] maxTargets=${maxTargets} willAutoKill=${eligibleDamaged.length === maxTargets}`);
+    if (setting('debugMode')) console.log(`Death Tracker | DT | PWK autoAssign: eligibleDamaged=[${eligibleDamaged.join(',')}] maxTargets=${maxTargets} willAutoKill=${eligibleDamaged.length === maxTargets}`);
     if (eligibleDamaged.length === maxTargets) {
       window._pwkActive = false;
       canvas.app.ticker.remove(_pwkTicker);
@@ -2496,14 +2492,14 @@ export const runPowerWordKillUI = async (options = {}) => {
       }
       window._dsctKillLockActive = true;
       window._dsctKillLockSkipped = new Set();
-      if (setting('debugMode')) console.log(`DSCT | DT | Kill lock acquired (OMD, ${eligibleDamaged.length} targets)`);
+      if (setting('debugMode')) console.log(`Death Tracker | DT | Kill lock acquired (OMD, ${eligibleDamaged.length} targets)`);
       try {
         const batchEntries = [];
         const killedTokenIds = new Set();
         for (const id of eligibleDamaged) {
           const t = canvas.tokens.get(id);
           if (!t?.actor || t.actor.statuses?.has('dead')) continue;
-          if (setting('debugMode')) console.log(`DSCT | DT | Kill lock: applying dead to ${t.actor.name} (${t.id})`);
+          if (setting('debugMode')) console.log(`Death Tracker | DT | Kill lock: applying dead to ${t.actor.name} (${t.id})`);
           await safeToggleStatusEffect(t.actor, 'dead', { active: true });
           await _processTokenDeath(t, t.actor, { batchEntries });
           killedTokenIds.add(t.id);
@@ -2514,7 +2510,7 @@ export const runPowerWordKillUI = async (options = {}) => {
         for (const tokenId of skipped) {
           const t = canvas.tokens.get(tokenId);
           if (!t?.actor) continue;
-          if (setting('debugMode')) console.log(`DSCT | DT | Kill lock: processing DS-collateral kill ${t.actor.name} (${t.id})`);
+          if (setting('debugMode')) console.log(`Death Tracker | DT | Kill lock: processing DS-collateral kill ${t.actor.name} (${t.id})`);
           await _processTokenDeath(t, t.actor, { batchEntries });
         }
         if (batchEntries.length) flushDeathBatch(batchEntries);
@@ -2522,9 +2518,9 @@ export const runPowerWordKillUI = async (options = {}) => {
       } finally {
         window._dsctKillLockActive = false;
         window._dsctKillLockSkipped = null;
-        if (setting('debugMode')) console.log('DSCT | DT | Kill lock released (OMD)');
+        if (setting('debugMode')) console.log('Death Tracker | DT | Kill lock released (OMD)');
       }
-      ui.notifications.info(eligibleDamaged.length > 1 ? 'MASS POWER WORD: KILL' : 'POWER WORD: KILL');
+      ui.notifications.info(game.i18n.localize(eligibleDamaged.length > 1 ? 'DSDT.notice.dt.pwkMass' : 'DSDT.notice.dt.pwk'));
       processQueue();
       return;
     } else if (eligibleDamaged.length > maxTargets) {

@@ -140,14 +140,14 @@ function _installUndoDeathHook(root) {
     }
 
     const undoBtn = e.target.closest(`.${DSTD}-undo-button:not(.dsct-dstd-undo-btn)`);
-    if (dbg) console.log(`DSCT | DSTD undo-death | click, btn=${undoBtn?.className ?? 'none'}`);
+    if (dbg) console.log(`Death Tracker | DSTD undo-death | click, btn=${undoBtn?.className ?? 'none'}`);
     if (!undoBtn?.closest(DSTD_PANEL)) return;
     const actionRow = undoBtn.closest(`.${DSTD}-action-row`);
     if (!actionRow || actionRow.classList.contains('dsct-dstd-fm-row')) return;
     const targetRow = undoBtn.closest(DSTD_ROW);
     if (!targetRow) return;
     const { targetKey } = targetRow.dataset;
-    if (dbg) console.log(`DSCT | DSTD undo-death | targetKey=${targetKey}`);
+    if (dbg) console.log(`Death Tracker | DSTD undo-death | targetKey=${targetKey}`);
     if (!targetKey || targetKey === 'selected-token') return;
     const tokenUuid = targetKey.replace(/__/g, '.');
 
@@ -194,7 +194,7 @@ export async function runDstdUndoRevival(tokenUuid) {
   try {
     const tokenDoc = await fromUuid(tokenUuid).catch(() => null);
     const token = tokenDoc?.object;
-    if (dbg) console.log(`DSCT | DSTD undo-death | token=${token?.name}, dead=${token?.actor?.statuses?.has(CONFIG.specialStatusEffects?.DEFEATED ?? 'dead')}`);
+    if (dbg) console.log(`Death Tracker | DSTD undo-death | token=${token?.name}, dead=${token?.actor?.statuses?.has(CONFIG.specialStatusEffects?.DEFEATED ?? 'dead')}`);
     if (!token?.actor) return;
     const defeatedStatus = CONFIG.specialStatusEffects?.DEFEATED ?? 'dead';
     if (!token.actor.statuses?.has(defeatedStatus)) return;
@@ -204,7 +204,7 @@ export async function runDstdUndoRevival(tokenUuid) {
       : [token.id];
     await reviveTokens(toRevive.length ? toRevive : [token.id]);
   } catch (e) {
-    console.warn('DSCT | DSTD undo-death | revival error:', e);
+    console.warn('Death Tracker | DSTD undo-death | revival error:', e);
   } finally {
     _dsctPendingRevival.delete(tokenUuid);
   }
@@ -272,7 +272,7 @@ export const registerDeathTrackerDstd = () => {
       if (_dsctPendingRevival.has(tokenUuid)) continue;
       const deadDoc = await fromUuid(tokenUuid).catch(() => null);
       if (deadDoc?.actor?.statuses?.has(defeatedStatus)) {
-        if (setting('debugMode')) console.log(`DSCT | DSTD compat | removing dead target row ${dk}`);
+        if (setting('debugMode')) console.log(`Death Tracker | DSTD compat | removing dead target row ${dk}`);
         deadRow.remove();
       }
     }

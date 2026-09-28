@@ -54,13 +54,17 @@
         "revived": "{name} has been revived!",
         "selectionCancelled": "Selection cancelled.",
         "tokenGone": "{name} is no longer on this scene.",
-        "tokenNotFound": "Token not found on scene."
+        "tokenNotFound": "Token not found on scene.",
+        "revivedMany": "Revived {names}.",
+        "pwk": "POWER WORD: KILL",
+        "pwkMass": "MASS POWER WORD: KILL"
       },
       "playerCannotUndoDamage": "Undoing this would revive a defeated target, which players cannot do. Enable \"Players Can Undo Deaths Their Owned Actors Caused\" in Compatibility settings.",
       "squads": {
         "noCaptainCandidates": "No valid captain candidates found for {group}.",
         "squadGone": "That squad is no longer in the encounter."
-      }
+      },
+      "olderCombatTools": "Draw Steel: Combat Tools {version} still has its own Death Tracker, so Draw Steel: Death Tracker is staying off to avoid handling every death twice. Update Combat Tools, or turn its Death Tracker off, and reload."
     },
     "panel": {
       "title": {

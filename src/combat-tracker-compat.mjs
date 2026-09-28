@@ -26,10 +26,10 @@ export function suppressTrackerAutoDefeat() {
   const found = (events.updateActor ?? []).filter(_isAutoDefeatHook);
   if (!found.length) {
     
-    console.warn('DSCT | combat tracker compat | could not find the auto defeat hook to suppress; it may have been changed or removed upstream');
+    console.warn('Death Tracker | combat tracker compat | could not find the auto defeat hook to suppress; it may have been changed or removed upstream');
     return;
   }
   for (const entry of found) Hooks.off('updateActor', entry.id);
   Hooks.on('updateActor', _refreshDockOnly);
-  console.log(`DSCT | combat tracker compat | suppressed ${found.length} auto defeat hook(s); the dock still refreshes and this module owns death`);
+  console.log(`Death Tracker | combat tracker compat | suppressed ${found.length} auto defeat hook(s); the dock still refreshes and this module owns death`);
 }

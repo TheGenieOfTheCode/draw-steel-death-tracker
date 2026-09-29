@@ -2,9 +2,9 @@
   "id": "draw-steel-death-tracker",
   "title": "Draw Steel: Death Tracker",
   "description": "<p>Handles defeat in Draw Steel combat. The fallen stay where they fell, every death is announced in chat with an undo, minion squads lose the right minions, and the Director can raise the dead or finish a fight outright.</p>",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "manifest": "https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/releases/latest/download/module.json",
-  "download": "https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/releases/download/v1.0.1/draw-steel-death-tracker.zip",
+  "download": "https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/releases/download/v1.0.2/draw-steel-death-tracker.zip",
   "bugs": "https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/issues",
   "readme": "https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/blob/main/README.md",
   "license": "https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/blob/main/LICENSE",
@@ -23,17 +23,17 @@
       {
         "id": "draw-steel-target-damage",
         "type": "module",
-        "reason": "[Compatible] Undoing a kill brings it back."
+        "reason": "[Compatible] Undoing damage that killed a creature brings it back, and dead targets drop out of the damage card."
       },
       {
         "id": "lib-wrapper",
         "type": "module",
-        "reason": "[Compatible] Plays nicely with other modules."
+        "reason": "[Compatible] Hiding the defeated plays nicely with other modules that change token visibility."
       },
       {
         "id": "draw-steel-combat-tools",
         "type": "module",
-        "reason": "[Combat Tools] Squad captains and forced movement deaths."
+        "reason": "[Combat Tools] Squad captains are handed on when they fall, and deaths from forced movement undo cleanly."
       }
     ]
   },

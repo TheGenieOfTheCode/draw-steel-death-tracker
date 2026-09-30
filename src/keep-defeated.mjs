@@ -1,6 +1,10 @@
 import { DT_ID as M, readFlag, setting } from './dt-core.mjs';
 
 
+const _isDeadMinion = (squad, actor) => {
+  if (actor?.statuses?.has(CONFIG.specialStatusEffects?.DEFEATED ?? 'dead')) return true;
+  return !!squad.minions?.find?.((m) => m.actor === actor)?.defeated;
+};
 
 export const revivedInitiative = (combatant) => {
   const held = readFlag(combatant, 'heldInitiative');
@@ -49,4 +53,16 @@ export const registerKeepDefeated = () => {
   });
 
 
+  Hooks.once('setup', () => {
+    if (typeof libWrapper === 'undefined') return;
+    
+    libWrapper.register(M, 'CONFIG.CombatantGroup.dataModels.squad.prototype.takeDamage', function (wrapped, minions, damage, options) {
+      const all = Array.isArray(minions) ? minions : [];
+      const standing = all.filter((actor) => !_isDeadMinion(this, actor));
+      if (standing.length === all.length) return wrapped(minions, damage, options);
+      if (setting('debugMode')) console.log(`Death Tracker | ${all.length - standing.length} fallen minion(s) took no squad damage`);
+      if (!standing.length) return this;
+      return wrapped(standing, damage, options);
+    }, 'MIXED');
+  });
 };

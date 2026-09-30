@@ -17,18 +17,14 @@
     "systems": [{ "id": "draw-steel", "type": "system", "compatibility": {} }],
     "requires": [
       { "id": "draw-steel-ctlib", "type": "module", "manifest": "https://github.com/TheGenieOfTheCode/draw-steel-ctlib/releases/latest/download/module.json", "compatibility": {} },
-      { "id": "socketlib", "type": "module", "compatibility": { "minimum": "1.1.3" } }
+      { "id": "socketlib", "type": "module", "compatibility": { "minimum": "1.1.3" } },
+      { "id": "lib-wrapper", "type": "module", "compatibility": { "minimum": "1.12.0" } }
     ],
     "recommends": [
       {
         "id": "draw-steel-target-damage",
         "type": "module",
         "reason": "[Compatible] Undoing damage that killed a creature brings it back, and dead targets drop out of the damage card."
-      },
-      {
-        "id": "lib-wrapper",
-        "type": "module",
-        "reason": "[Compatible] Hiding the defeated plays nicely with other modules that change token visibility."
       },
       {
         "id": "draw-steel-combat-tools",

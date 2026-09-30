@@ -154,6 +154,7 @@ export const toggleHideDefeated = async () => {
   if (DBG()) console.log(`Death Tracker | DTV | toggle ${current} -> ${next}`);
   await writeFlag(game.user, 'hideDefeated', next);
   refreshDefeatedVisibility();
+  ui.combat?.render();
 };
 
 

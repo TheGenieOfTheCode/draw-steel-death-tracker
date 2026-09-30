@@ -1,5 +1,6 @@
 import { DT_ID as M, readFlag, setting } from './dt-core.mjs';
 
+const hidingDefeated = () => readFlag(game.user, 'hideDefeated') === true;
 
 const _isDeadMinion = (squad, actor) => {
   if (actor?.statuses?.has(CONFIG.specialStatusEffects?.DEFEATED ?? 'dead')) return true;
@@ -34,6 +35,14 @@ export const markDefeated = async (combatants, options = {}) => {
   });
 };
 
+const _hideDefeatedRows = (_app, element) => {
+  const root = element instanceof HTMLElement ? element : element?.[0];
+  if (!root) return;
+  const hide = hidingDefeated();
+  for (const el of root.querySelectorAll('li.combatant.defeated, .combatant-group.defeated')) {
+    el.style.display = hide ? 'none' : '';
+  }
+};
 
 export const registerKeepDefeated = () => {
   
@@ -52,6 +61,7 @@ export const registerKeepDefeated = () => {
     return false;
   });
 
+  Hooks.on('renderCombatTracker', _hideDefeatedRows);
 
   Hooks.once('setup', () => {
     if (typeof libWrapper === 'undefined') return;

@@ -1,4 +1,5 @@
-import { DT_ID as M, readFlag, setting } from './dt-core.mjs';
+import { DT_ID as M, readFlag, setting, dtSocket } from './dt-core.mjs';
+import { services } from './ctlib.mjs';
 
 const hidingDefeated = () => readFlag(game.user, 'hideDefeated') === true;
 
@@ -44,7 +45,21 @@ const _hideDefeatedRows = (_app, element) => {
   }
 };
 
+export const reviveCombatant = async (combatant) => {
+  const combat = combatant?.parent;
+  if (!combat) return;
+  if (combat.isOwner) return combat.updateEmbeddedDocuments('Combatant', [reviveUpdate(combatant)], { dsdtRevive: true });
+  return dtSocket()?.executeAsGM('dt.reviveCombatant', combat.id, combatant.id);
+};
+
+const _syncDockHiding = () => document.body.classList.toggle('dsdt-hiding-defeated', hidingDefeated());
+
 export const registerKeepDefeated = () => {
+  services.provide('reviveCombatant', reviveCombatant);
+  Hooks.once('ready', _syncDockHiding);
+  Hooks.on('updateUser', (user, changes) => {
+    if (user.isSelf && changes.flags?.[M] && 'hideDefeated' in changes.flags[M]) _syncDockHiding();
+  });
   
   Hooks.on('preUpdateCombatant', (combatant, changed, options) => {
     if (options?.dsdtRevive || !('initiative' in changed)) return;

@@ -300,3 +300,9 @@ body.dsct-picker-lock .dsct-dt-footer .dsct-dt-release {
   border-color: rgba(198, 92, 92, 0.6);
   background: rgba(198, 92, 92, 0.14);
 }
+
+body.dsdt-hiding-defeated #ds-combat-dock .ds-mini-portrait.defeated,
+body.dsdt-hiding-defeated #ds-combat-dock .ds-portrait.defeated,
+body.dsdt-hiding-defeated #ds-combat-dock .ds-group-wrapper:has(> .ds-group-container.defeated) {
+  display: none;
+}

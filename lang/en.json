@@ -54,7 +54,6 @@
         "revived": "{name} has been revived!",
         "selectionCancelled": "Selection cancelled.",
         "tokenGone": "{name} is no longer on this scene.",
-        "tokenNotFound": "Token not found on scene.",
         "revivedMany": "Revived {names}.",
         "pwk": "POWER WORD: KILL",
         "pwkMass": "MASS POWER WORD: KILL"

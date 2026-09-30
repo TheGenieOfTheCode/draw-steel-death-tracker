@@ -38,11 +38,87 @@ export const noteDamageCause = ({ dstd = false, userId = null, sourceActorUuid =
 
 const CAUSE_MAX_MS = 5 * 60 * 1000;
 
+
+const _reconcileTimers = new Map();
+
 const _stillSettling = () => (window._dsctDamageBatchDepth ?? 0) > 0
+  || _reconcileTimers.size > 0
   || !!window._dsctManualKillAccumulator
   || (window._dsctPendingSquadTimers?.size ?? 0) > 0
   || window._dsctFlushBusy === true
   || window._dsctKillLockActive === true;
+
+
+const TRIGGERS_ID = 'draw-steel-triggers';
+const _triggersApi = () => (game.modules.get(TRIGGERS_ID)?.active ? game.modules.get(TRIGGERS_ID).api : null);
+const _heldByTriggers = () => _triggersApi()?.getQueueMirror?.()?.filter(e => e.kind === 'damageHeld') ?? [];
+const _triggersHolding = () => _heldByTriggers().length > 0;
+const _parkedForHeld = new Set();
+let _pickerOpen = null;
+
+let _reaperSent = 'null';
+const _refreshReaper = foundry.utils.debounce(() => {
+  const api = _triggersApi();
+  if (!api?.setReaper || !game.users.activeGM?.isSelf) return;
+  const held = _heldByTriggers();
+  const picking = _pickerOpen;
+  const impending = !!window._dsctManualKillAccumulator?.pickerContexts?.length;
+  let data = null;
+  if (held.length || picking || impending) {
+    const defeatedId = CONFIG.specialStatusEffects?.DEFEATED ?? 'dead';
+    const certain = new Map(), maybe = new Map();
+    const add = (map, doc) => {
+      if (!doc?.actor || doc.actor.statuses?.has(defeatedId)) return;
+      map.set(doc.uuid, { uuid: doc.uuid, name: doc.name, img: doc.texture?.src ?? doc.actor.img });
+    };
+    const byId = (id) => canvas.tokens?.get(id)?.document ?? null;
+    const acc = window._dsctManualKillAccumulator;
+    for (const id of acc?.tokenIds ?? []) add(certain, byId(id));
+    for (const id of picking?.tokenIds ?? []) add(certain, byId(id));
+    for (const ctx of picking?.contexts ?? []) {
+      for (const id of ctx.lockedIds ?? []) add(certain, byId(id));
+      for (const id of ctx.poolTokenIds ?? []) add(maybe, byId(id));
+    }
+    for (const ctx of acc?.pickerContexts ?? []) {
+      for (const id of ctx.lockedIds ?? []) add(certain, byId(id));
+      for (const id of ctx.poolTokenIds ?? []) add(maybe, byId(id));
+    }
+    const damaged = window._lastSquadDamagedTokenIds ?? new Set();
+    const queued = acc?.tokenIds ?? new Set();
+    for (const groupId of _parkedForHeld) {
+      const group = game.combat?.groups?.get(groupId);
+      const standing = Array.from(group?.members ?? []).filter(m => m?.actor?.system?.isMinion && !m.actor.statuses?.has(defeatedId));
+      if (!standing.length) continue;
+      const indiv = standing[0].actor.system?.stamina?.max || 1;
+      const live = standing.filter(m => !queued.has(m.tokenId));
+      const pool = group.system?.staminaValue ?? 0;
+      const toll = pool <= 0 ? live.length : Math.max(0, live.length - Math.ceil(pool / indiv));
+      if (!toll) continue;
+      const hit = live.filter(m => damaged.has(m.tokenId));
+      if (hit.length > toll) { for (const m of hit) add(maybe, m.token); continue; }
+      for (const m of hit) add(certain, m.token);
+      if (hit.length < toll) for (const m of live) if (!damaged.has(m.tokenId)) add(maybe, m.token);
+    }
+    for (const e of held) {
+      const doc = e.heldDamage?.tokenUuid ? fromUuidSync(e.heldDamage.tokenUuid) : null;
+      const actor = doc?.actor;
+      if (!actor) continue;
+      if (actor.system?.isMinion) { add(maybe, doc); continue; }
+      const st = actor.system?.stamina;
+      if (!st) continue;
+      const floor = actor.type === 'hero' ? -(st.winded ?? 0) : 0;
+      if ((st.value ?? 0) + (st.temporary ?? 0) - Number(e.heldDamage.amount ?? 0) <= floor) add(maybe, doc);
+    }
+    for (const uuid of certain.keys()) maybe.delete(uuid);
+    const status = picking ? 'picking' : impending ? 'impending' : 'held';
+    const picker = picking ? game.users.get(picking.userId)?.name ?? null : null;
+    if (certain.size || maybe.size || picking || impending) data = { certain: [...certain.values()], maybe: [...maybe.values()], status, picker };
+  }
+  const json = JSON.stringify(data);
+  if (json === _reaperSent) return;
+  _reaperSent = json;
+  api.setReaper(data);
+}, 150);
 
 const _currentDamageCause = () => {
   if (_causeOverride) return _causeOverride;
@@ -1166,6 +1242,9 @@ const _settleKillFlush = async (a) => {
     const contexts     = _withForced(liveContexts, finalTokenIds);
     const pickerUserId = resolvePickerUserId();
     let picked;
+    _pickerOpen = { userId: pickerUserId, contexts, tokenIds: finalTokenIds };
+    _refreshReaper();
+    try {
     if (pickerUserId === game.user.id) {
       picked = await _runManualModePicker(contexts);
     } else {
@@ -1192,6 +1271,10 @@ const _settleKillFlush = async (a) => {
           }, 5 * 60 * 1000);
         });
       }
+    }
+    } finally {
+      _pickerOpen = null;
+      _refreshReaper();
     }
     if (!picked) {
       ui.notifications.warn(game.i18n.localize('DSDT.notice.dt.pickDeathsCancelled'));
@@ -1253,6 +1336,7 @@ const _flushManualKillAccumulator = async () => {
 
   
   const hold = window._dsctPendingSquadTimers?.size > 0 || window._dsctFlushBusy
+    || (hasWork && _triggersHolding())
     || (applying && ++_flushHolds <= _FLUSH_MAX_HOLDS)
     || (squadAboutToBeAsked && ++_forcedHolds <= _FORCED_HOLD_MAX);
   if (hold) {
@@ -1287,6 +1371,7 @@ const _queueManualKillTargets = (tokenIds, extraLines) => {
   acc.extraLines.push(...extraLines);
   if (acc.timer) clearTimeout(acc.timer);
   acc.timer = setTimeout(_flushManualKillAccumulator, _MANUAL_KILL_ACCUM_MS);
+  _refreshReaper();
 };
 
 const _queueManualPickerContext = (ctx, extraLines) => {
@@ -1305,6 +1390,7 @@ const _queueManualPickerContext = (ctx, extraLines) => {
   acc.extraLines.push(...extraLines);
   if (acc.timer) clearTimeout(acc.timer);
   acc.timer = setTimeout(_flushManualKillAccumulator, _MANUAL_KILL_ACCUM_MS);
+  _refreshReaper();
 };
 
 const oneMustDie = (eligibleDamaged, extraLines) => {
@@ -1322,6 +1408,11 @@ export const _addDamagedToken = (tokenId, userId = null) => {
   if (userId) window._lastSquadDamageUserId = userId;
   clearTimeout(window._lastSquadDamagedTokenIdsTimer);
   const expire = () => {
+    if (_triggersHolding()) {
+      window._lastSquadDamagedSince = Date.now();
+      window._lastSquadDamagedTokenIdsTimer = setTimeout(expire, 500);
+      return;
+    }
     const tooOld = Date.now() - (window._lastSquadDamagedSince ?? 0) >= DAMAGED_KEEP_MAX_MS;
     if (!tooOld && (_stillSettling() || dstdStillApplying())) {
       window._lastSquadDamagedTokenIdsTimer = setTimeout(expire, 500);
@@ -1499,6 +1590,13 @@ export function registerDeathTrackerHooks() {
       return;
     }
 
+    if (_triggersHolding()) {
+      _parkedForHeld.add(group.id);
+      if (dbg) console.log(`Death Tracker | DT | "${group.name}" waits on damage Triggers is holding`);
+      _refreshReaper();
+      return;
+    }
+
     const applying = _impatient.has(group.id) ? null : dstdStillApplying();
     if (applying) {
       deferSquadReconcile(group, applying);
@@ -1533,12 +1631,12 @@ export function registerDeathTrackerHooks() {
     const minions = Array.from(group.members ?? []).filter(m => m?.actor?.system?.isMinion && !m.defeated);
     if (dbg) console.log('Death Tracker | DT | minions:', minions.map(m => ({ name: m?.actor?.name, isMinion: m?.actor?.system?.isMinion })));
 
-    if (minions.length === 0) { window._squadDeathLocks.delete(group.id); return; }
+    if (minions.length === 0) { window._squadDeathLocks.delete(group.id); syncDeathPulse(group); return; }
 
     const indivHP = minions[0].actor?.system?.stamina?.max || 1;
     const numToKill = newHp <= 0 ? minions.length : (minions.length - Math.ceil(newHp / indivHP));
 
-    if (numToKill <= 0) { window._squadDeathLocks.delete(group.id); return; }
+    if (numToKill <= 0) { window._squadDeathLocks.delete(group.id); syncDeathPulse(group); return; }
 
     const processDeath = async () => {
       window._squadBreakpointPolls?.delete(group.id);
@@ -1691,7 +1789,6 @@ export function registerDeathTrackerHooks() {
   
   const RECONCILE_MS = 1100;
   const RECONCILE_MAX_WAITS = 30;
-  const _reconcileTimers = new Map();
   const _reconcileWaits = new Map();
 
   const scheduleSquadReconcile = (group, { delay = RECONCILE_MS } = {}) => {
@@ -1731,6 +1828,18 @@ export function registerDeathTrackerHooks() {
     if (setting('debugMode')) console.log(`Death Tracker | DT | squad reconcile waiting on ${why} (${waits})`);
     scheduleSquadReconcile(group);
   };
+
+  Hooks.on('dst.queueChanged', () => {
+    if (!game.users.activeGM?.isSelf) return;
+    if (!_triggersHolding() && _parkedForHeld.size) {
+      for (const id of _parkedForHeld) {
+        const group = game.combat?.groups?.get(id);
+        if (group) scheduleSquadReconcile(group, { delay: 300 });
+      }
+      _parkedForHeld.clear();
+    }
+    _refreshReaper();
+  });
 
   const clearSquadReconcileWaits = (group) => {
     _reconcileWaits.delete(group?.id);

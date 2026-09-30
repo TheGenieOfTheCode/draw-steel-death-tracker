@@ -5,6 +5,7 @@ import {
 import { DT_ID, setDtSocket } from './dt-core.mjs';
 import { registerDeathTrackerSettings, migrateFromCombatTools } from './settings.mjs';
 import { suppressTrackerAutoDefeat } from './combat-tracker-compat.mjs';
+import { registerKeepDefeated } from './keep-defeated.mjs';
 
 export const MODULE_ID = DT_ID;
 
@@ -31,6 +32,7 @@ Hooks.once('init', () => {
   registerDeathVisuals();
   registerDeathTrackerDstd();
   registerDefeatedTokenVisibility();
+  registerKeepDefeated();
   game.modules.get(DT_ID).api = deathTrackerApi;
 });
 

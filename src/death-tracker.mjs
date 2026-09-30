@@ -5,6 +5,7 @@ import { renderDeathMessage, registerDeathCardRefresh } from './death-message.mj
 import { beginPickerLock, endPickerLock, clearPickerLockLocal } from './picker-lock.mjs';
 import { isDeathDeferred, isTokenDeathDeferred } from './defer-death.mjs';
 import { animateDeathVisual, deathVisualSettled, syncDeathVisual, markDeathPending, clearDeathPending, deathSettlementPending } from './death-visuals.mjs';
+import { markDefeated, reviveUpdate } from './keep-defeated.mjs';
 
 
 
@@ -195,7 +196,7 @@ const _processTokenDeath = async (token, actor, { batchEntries = null } = {}) =>
   if (captainOf) { flagData.savedCaptainOf = captainOf; _noteGroupName(captainOf); }
   await Promise.all([
     token.document.update({ flags: { [M]: flagData } }),
-    combatant ? combatant.delete() : Promise.resolve(),
+    combatant ? markDefeated([combatant]) : Promise.resolve(),
   ]);
 
   const isObject = actor.type === 'object';
@@ -392,8 +393,8 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
       _tm('step 3: tokens done');
     }
     if (combatantIds.length && game.combat) {
-      _tm(`step 3: ${combatantIds.length} combatant(s) in one delete`);
-      await game.combat.deleteEmbeddedDocuments('Combatant', combatantIds, txn).catch(() => {});
+      _tm(`step 3: ${combatantIds.length} combatant(s) marked defeated in one update`);
+      await markDefeated(combatantIds.map(id => game.combat.combatants.get(id)), txn);
       _tm('step 3: combatants done');
     }
 
@@ -602,6 +603,12 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
     }));
 
   
+  
+  const seatedBefore = new Map(tokens.map(t => {
+    const c = game.combat?.combatants.find(c2 => c2.tokenId === t.id) ?? null;
+    return [t.id, { combatant: c, wasDefeated: !!c?.defeated }];
+  }));
+
   _tm(`step 2: ${woken.length} status(es) in sequence`);
   for (const { t } of woken) {
     await safeToggleStatusEffect(t.actor, defeatedStatusId, { overlay: true, active: false });
@@ -632,14 +639,20 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
   for (const t of tokens) {
     if (!canvas.tokens.get(t.id)) continue;
     const isMinion = t.actor.system?.isMinion ?? false;
+    const { combatant = null, wasDefeated = false } = seatedBefore.get(t.id) ?? {};
+    const savedGroupId = readFlag(t.document, 'savedGroupId');
     plan.push({
       t,
       isMinion,
-      savedGroupId:     readFlag(t.document, 'savedGroupId'),
+      combatant,
+      savedGroupId,
+      groupId:          combatant?._source?.group ?? savedGroupId,
       savedCaptainOf:   readFlag(t.document, 'savedCaptainOf'),
       markerTileId:     readFlag(t.document, 'deathMarkerTileId'),
       minionMaxHP:      isMinion ? (t.actor.system.stamina?.max ?? 0) : 0,
-      needsCombatant:   !!game.combat && !game.combat.combatants.find(c => c.tokenId === t.id),
+      
+      needsCombatant:   !!game.combat && !combatant,
+      wasDefeated,
     });
   }
 
@@ -652,6 +665,12 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
     _tm(`step 3a: ${tokenUpdates.length} token(s) in one update`);
     await _updateTokens(tokenUpdates, txn);
     _tm('step 3a: done');
+  }
+
+  const standing = plan.filter(p2 => p2.wasDefeated).map(p2 => reviveUpdate(p2.combatant));
+  if (standing.length) {
+    _tm(`step 3b: ${standing.length} combatant(s) back on their feet in one update`);
+    await game.combat.updateEmbeddedDocuments('Combatant', standing, { ...txn, dsdtRevive: true });
   }
 
   const newCombatants = plan.filter(p2 => p2.needsCombatant).map(({ t, savedGroupId }) => {
@@ -668,9 +687,11 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
   for (const { t, savedCaptainOf } of plan) {
     if (!savedCaptainOf) continue;
     const group = game.combat?.groups?.get(savedCaptainOf);
-    if (!group || (services.get('hasLiveCaptain')?.(savedCaptainOf) ?? true)) continue;
+    if (!group) continue;
     const combatant = game.combat?.combatants?.find(c => c.tokenId === t.id);
-    if (!combatant) continue;
+    if (!combatant || group.system?.captainId === combatant.id) continue;
+    const seated = group.system?.captainId ? game.combat.combatants.get(group.system.captainId) : null;
+    if (seated && !seated.defeated && !seated.actor?.statuses?.has(defeatedStatusId)) continue;
     _tm(`step 3b: ${t.actor?.name} takes the crown of ${group.name} back`);
     await group.update({ 'system.captainId': combatant.id }, txn);
   }
@@ -678,8 +699,8 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
   if (!skipGroupHpRestore) {
     const poolDeltas = new Map();
     for (const p2 of plan) {
-      if (!p2.needsCombatant || !p2.savedGroupId || !p2.isMinion || p2.minionMaxHP <= 0) continue;
-      poolDeltas.set(p2.savedGroupId, (poolDeltas.get(p2.savedGroupId) ?? 0) + p2.minionMaxHP);
+      if (!(p2.needsCombatant || p2.wasDefeated) || !p2.groupId || !p2.isMinion || p2.minionMaxHP <= 0) continue;
+      poolDeltas.set(p2.groupId, (poolDeltas.get(p2.groupId) ?? 0) + p2.minionMaxHP);
     }
     for (const [groupId, delta] of poolDeltas) {
       const group = game.combat?.groups.get(groupId);
@@ -1342,6 +1363,7 @@ export function registerDeathTrackerHooks() {
     if (!actor.system?.isMinion) return;
     const newStamina = changes.system?.stamina?.value;
     if (newStamina === undefined || newStamina >= (actor.system.stamina?.value ?? 0)) return;
+    if (actor.statuses?.has(CONFIG.specialStatusEffects?.DEFEATED ?? 'dead')) return;
     const squadGroup = getSquadGroup(actor);
     if (!squadGroup) return;
     const tokenId = actor.isToken
@@ -1494,7 +1516,7 @@ export function registerDeathTrackerHooks() {
     clearSquadReconcileWaits(group);
 
     const defeatedStatusId = CONFIG.specialStatusEffects?.DEFEATED ?? 'dead';
-    const minions = Array.from(group.members ?? []).filter(m => m?.actor?.system?.isMinion);
+    const minions = Array.from(group.members ?? []).filter(m => m?.actor?.system?.isMinion && !m.defeated);
     if (dbg) console.log('Death Tracker | DT | minions:', minions.map(m => ({ name: m?.actor?.name, isMinion: m?.actor?.system?.isMinion })));
 
     if (minions.length === 0) { window._squadDeathLocks.delete(group.id); return; }
@@ -1826,12 +1848,14 @@ export function registerDeathTrackerHooks() {
           const orphaned = combat.combatants.filter(c => c.tokenId === tokenDoc.id);
           if (dbg) console.log(`Death Tracker | deleteToken | combat ${combat.id}: found ${orphaned.length} matching combatants`);
           const affectedGroupIds = new Set(orphaned.map(c => c._source?.group).filter(Boolean));
+          
+          const livingGroupIds = new Set(orphaned.filter(c => !c.defeated).map(c => c._source?.group).filter(Boolean));
           if (orphaned.length) await combat.deleteEmbeddedDocuments('Combatant', orphaned.map(c => c.id));
           if (affectedGroupIds.size) {
             const emptyGroups = [...affectedGroupIds].filter(gid => !Array.from(combat.groups.get(gid)?.members ?? []).length);
             const indivHP = tokenDoc.actor?.system?.isMinion ? (tokenDoc.actor.system.stamina?.max ?? 0) : 0;
             if (indivHP > 0) {
-              for (const gid of affectedGroupIds) {
+              for (const gid of livingGroupIds) {
                 if (emptyGroups.includes(gid)) continue;
                 const group = combat.groups.get(gid);
                 if (group) await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - indivHP) });
@@ -1870,11 +1894,11 @@ export function registerDeathTrackerHooks() {
           if (actor.system?.isMinion) {
             const indivHP = actor.system.stamina?.max ?? 0;
             if (indivHP > 0) {
-              const hpToSubtract = indivHP * orphaned.length;
               for (const gid of affectedGroupIds) {
                 if (emptyGroups.includes(gid)) continue;
+                const living = orphaned.filter(c => !c.defeated && c._source?.group === gid).length;
                 const group = combat.groups.get(gid);
-                if (group) await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - hpToSubtract) });
+                if (group && living) await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - indivHP * living) });
               }
             }
           }

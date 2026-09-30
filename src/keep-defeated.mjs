@@ -89,5 +89,16 @@ export const registerKeepDefeated = () => {
       if (!standing.length) return this;
       return wrapped(standing, damage, options);
     }, 'MIXED');
+
+    
+    
+    libWrapper.register(M, 'CONFIG.Combatant.documentClass.prototype._preUpdate', async function (wrapped, changes, options, user) {
+      if (!('initiative' in changes) || !(changes.initiative < this.initiative)) return wrapped(changes, options, user);
+      if (!(changes.defeated ?? this.defeated)) return wrapped(changes, options, user);
+      const initiative = changes.initiative;
+      delete changes.initiative;
+      try { return await wrapped(changes, options, user); }
+      finally { changes.initiative = initiative; }
+    }, 'MIXED');
   });
 };

@@ -31,7 +31,7 @@ Full documentation is available on the **[Wiki](https://github.com/TheGenieOfThe
 
 **[Raise Dead](https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/wiki/Raise-Dead)**: Bring the fallen back into the fight by clicking them on the map, or revive everyone at once. Squad Stamina and the Combat Tracker are put right for you.
 
-**[Death Notifications](https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/wiki/Death-Notifications)**: A defeated creature leaves the Combat Tracker but stays where it fell, marked with a skull if you like. Every death is announced in chat with an undo that puts the creature back exactly as it was. When a squad takes damage, the minions that were hit are the ones that die, and when it isn't clear who, whoever dealt the damage picks them on the map.
+**[Death Notifications](https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/wiki/Death-Notifications)**: A defeated creature stays where it fell and stays in the Combat Tracker marked defeated, with a skull beneath it if you like, and the Hide Defeated Tokens button hides defeated tokens from the map, the Combat Tracker and the Draw Steel Combat Tracker's dock. Every death is announced in chat with an undo that puts the creature back exactly as it was. When a squad takes damage, the minions that were hit are the ones that die, and when it isn't clear who, whoever dealt the damage picks them on the map.
 
 ---
 

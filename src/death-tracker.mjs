@@ -56,6 +56,9 @@ const _triggersHolding = () => _heldByTriggers().length > 0;
 const _parkedForHeld = new Set();
 let _pickerOpen = null;
 
+const _recheckAfterPicker = new Set();
+let _rescheduleSquad = null;
+
 let _reaperSent = 'null';
 const _refreshReaper = foundry.utils.debounce(() => {
   const api = _triggersApi();
@@ -1274,6 +1277,11 @@ const _settleKillFlush = async (a) => {
     }
     } finally {
       _pickerOpen = null;
+      for (const id of _recheckAfterPicker) {
+        const group = game.combat?.groups?.get(id);
+        if (group) _rescheduleSquad?.(group);
+      }
+      _recheckAfterPicker.clear();
       _refreshReaper();
     }
     if (!picked) {
@@ -1590,6 +1598,12 @@ export function registerDeathTrackerHooks() {
       return;
     }
 
+    if (_pickerOpen?.contexts?.some(c => c.groupId === group.id)) {
+      _recheckAfterPicker.add(group.id);
+      if (dbg) console.log(`Death Tracker | DT | "${group.name}" is being picked, checking again once the picker closes`);
+      return;
+    }
+
     if (_triggersHolding()) {
       _parkedForHeld.add(group.id);
       if (dbg) console.log(`Death Tracker | DT | "${group.name}" waits on damage Triggers is holding`);
@@ -1828,6 +1842,8 @@ export function registerDeathTrackerHooks() {
     if (setting('debugMode')) console.log(`Death Tracker | DT | squad reconcile waiting on ${why} (${waits})`);
     scheduleSquadReconcile(group);
   };
+
+  _rescheduleSquad = (group) => scheduleSquadReconcile(group, { delay: 300 });
 
   Hooks.on('dst.queueChanged', () => {
     if (!game.users.activeGM?.isSelf) return;

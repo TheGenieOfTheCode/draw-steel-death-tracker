@@ -1450,7 +1450,7 @@ export function registerDeathTrackerHooks() {
     const newVal = changed?.system?.staminaValue;
     if (newVal === undefined) return;
 
-    const alive = Array.from(group.members ?? []).filter(m => m?.actor?.system?.isMinion && !m.defeated);
+    const alive = Array.from(group.members ?? []).filter(m => m?.actor?.system?.isMinion && !m.isDefeated);
     const indivHP = alive.length > 0 ? (alive[0].actor?.system?.stamina?.max ?? 1) : 1;
     const maxHP = alive.length * indivHP;
     const clamped = Math.min(Math.max(newVal, 0), maxHP);
@@ -2340,69 +2340,6 @@ export const reviveAll = async () => {
   if (!defeated.length) { ui.notifications.warn(game.i18n.localize('DSDT.notice.dt.noSkulls')); return; }
 
   await _doReviveV3({ tokenIds: new Set(defeated.map(t => t.id)) });
-};
-
-const executeRevival = async (tokenId, { skipGroupHpUpdate = false } = {}) => {
-  const tokenDoc = canvas.scene.tokens.get(tokenId);
-
-  if (!tokenDoc) {
-    ui.notifications.error(game.i18n.localize('DSDT.notice.dt.tokenNotFound'));
-    return;
-  }
-
-  
-
-  const combatant = game.combat?.combatants.find(c => c.tokenId === tokenId);
-  if (combatant?.defeated) await combatant.update({ defeated: false });
-
-  const actor = tokenDoc.actor;
-  const isMinion = actor?.system?.isMinion ?? false;
-  if (actor) {
-    const defeatedStatusId = CONFIG.specialStatusEffects?.DEFEATED ?? 'dead';
-    if (actor.statuses?.has(defeatedStatusId)) {
-      await actor.toggleStatusEffect(defeatedStatusId, { overlay: true, active: false });
-    }
-
-    const currentStamina = actor.system.stamina?.value || 0;
-    if (currentStamina <= 0) {
-      await actor.update({ 'system.stamina.value': 1 });
-    }
-
-    await new Promise(r => setTimeout(r, 50));
-
-    if (setting('clearEffectsOnRevive')) {
-      
-
-      const validEffectIds = actor.effects
-        .filter(e => !e.id.endsWith('0000000000'))
-        .map(e => e.id);
-
-      if (validEffectIds.length > 0) {
-        try {
-          await actor.deleteEmbeddedDocuments("ActiveEffect", validEffectIds);
-        } catch (e) {
-          console.warn("Death Tracker | DT | Minor error clearing remaining effects: ", e);
-        }
-      }
-    }
-  }
-
-  if (tokenDoc.object) await animateDeathVisual(tokenDoc.object);
-
-  if (game.combat && !game.combat.combatants.find(c => c.tokenId === tokenId)) {
-    const savedGroupId = readFlag(tokenDoc, 'savedGroupId');
-    const group = savedGroupId ? game.combat.groups.get(savedGroupId) : null;
-    const combatantData = { tokenId, sceneId: canvas.scene.id, actorId: tokenDoc.actorId };
-    if (group) combatantData.group = savedGroupId;
-    await game.combat.createEmbeddedDocuments('Combatant', [combatantData]);
-    if (!skipGroupHpUpdate && group && isMinion) {
-      const minionMaxHP = tokenDoc.actor?.system?.stamina?.max ?? 0;
-      if (minionMaxHP > 0) await group.update({ 'system.staminaValue': (group.system.staminaValue ?? 0) + minionMaxHP });
-    }
-    if (savedGroupId) await clearFlag(tokenDoc, 'savedGroupId');
-  }
-
-  ui.notifications.info(game.i18n.format('DSDT.notice.dt.revived', { name: tokenDoc.name }));
 };
 
 export const cleanupPixi = () => {

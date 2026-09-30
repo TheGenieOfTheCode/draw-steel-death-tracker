@@ -274,6 +274,7 @@ const _drainSwallowedDeaths = async (ourIds) => {
   for (const tokenId of late) {
     const t = canvas.tokens.get(tokenId);
     if (!t?.actor?.statuses?.has('dead')) continue;
+    if (game.combat?.combatants.find(c => c.tokenId === tokenId)?.defeated) continue;
     if (setting('debugMode')) console.log(`Death Tracker | DT | kill lock: a death landed late, processing ${t.actor.name} (${t.id})`);
     await _processTokenDeath(t, t.actor, { batchEntries });
   }
@@ -471,6 +472,7 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
       for (const tokenId of swallowed) {
         const t = canvas.tokens.get(tokenId);
         if (!t?.actor?.statuses?.has('dead')) continue;
+        if (game.combat?.combatants.find(c => c.tokenId === tokenId)?.defeated) continue;
         _tm(`step 4: a collateral death the kill lock swallowed -- ${t.actor.name}`);
         await _processTokenDeath(t, t.actor, { batchEntries });
       }
@@ -1425,15 +1427,15 @@ export function registerDeathTrackerHooks() {
 
     
     
+    
+    if (window._dsctManualKillTokenIds?.has(token.id)) return;
+
     if (window._dsctKillLockActive) {
       if (setting('debugMode')) console.log(`Death Tracker | DT | createActiveEffect: kill lock active, skipping (${actor.name} ${token.id})`);
       if (!window._dsctKillLockSkipped) window._dsctKillLockSkipped = new Set();
       window._dsctKillLockSkipped.add(token.id);
       return;
     }
-
-    
-    if (window._dsctManualKillTokenIds?.has(token.id)) return;
 
     if (setting('debugMode')) console.log(`Death Tracker | DT | createActiveEffect: queuing dead-status trigger for ${actor.name} (${token.id})`);
     _queueManualKillTargets(

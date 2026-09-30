@@ -1317,7 +1317,11 @@ const _runManualKillFlush = async () => {
 
   _keepCause(a);
 
-  const asked = [...new Set(a.pickerContexts.map(c => c.groupId).filter(Boolean))];
+  const asked = new Set(a.pickerContexts.map(c => c.groupId).filter(Boolean));
+  for (const id of a.tokenIds) {
+    const groupId = game.combat?.combatants?.find(c => c.tokenId === id)?.group?.id;
+    if (groupId) asked.add(groupId);
+  }
   try {
     await _settleKillFlush(a);
   } finally {
@@ -1665,7 +1669,7 @@ export function registerDeathTrackerHooks() {
       const standing = minions.filter(m => m?.actor && !m.actor.statuses?.has(defeatedStatusId));
       const liveMinions = standing.filter(m => !queuedToDie.has(m.tokenId));
       const alreadyQueued = standing.length - liveMinions.length;
-      if (liveMinions.length === 0) return;
+      if (liveMinions.length === 0) { syncDeathPulse(group); return; }
 
       
       
@@ -1678,7 +1682,7 @@ export function registerDeathTrackerHooks() {
       const effectiveNumToKill = freshHp <= 0
         ? liveMinions.length
         : Math.max(0, standing.length - Math.ceil(freshHp / indivHP) - alreadyQueued);
-      if (effectiveNumToKill <= 0) return;
+      if (effectiveNumToKill <= 0) { syncDeathPulse(group); return; }
 
       
       const pickable = liveMinions.filter(m => !isDeathDeferred(m.actor));

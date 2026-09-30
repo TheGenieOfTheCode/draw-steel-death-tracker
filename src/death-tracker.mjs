@@ -1311,15 +1311,27 @@ const oneMustDie = (eligibleDamaged, extraLines) => {
   _queueManualKillTargets(new Set(eligibleDamaged), extraLines);
 };
 
+
+const DAMAGED_KEEP_MAX_MS = 30000;
 export const _addDamagedToken = (tokenId, userId = null) => {
-  if (!window._lastSquadDamagedTokenIds) window._lastSquadDamagedTokenIds = new Set();
+  if (!window._lastSquadDamagedTokenIds) {
+    window._lastSquadDamagedTokenIds = new Set();
+    window._lastSquadDamagedSince = Date.now();
+  }
   window._lastSquadDamagedTokenIds.add(tokenId);
   if (userId) window._lastSquadDamageUserId = userId;
   clearTimeout(window._lastSquadDamagedTokenIdsTimer);
-  window._lastSquadDamagedTokenIdsTimer = setTimeout(() => {
+  const expire = () => {
+    const tooOld = Date.now() - (window._lastSquadDamagedSince ?? 0) >= DAMAGED_KEEP_MAX_MS;
+    if (!tooOld && (_stillSettling() || dstdStillApplying())) {
+      window._lastSquadDamagedTokenIdsTimer = setTimeout(expire, 500);
+      return;
+    }
     window._lastSquadDamagedTokenIds = null;
     window._lastSquadDamageUserId    = null;
-  }, window._dsctFMActive ? 10000 : 2000);
+    window._lastSquadDamagedSince    = null;
+  };
+  window._lastSquadDamagedTokenIdsTimer = setTimeout(expire, window._dsctFMActive ? 10000 : 2000);
 };
 
 export const reportSquadDamage = (tokenId) => {
@@ -1535,7 +1547,12 @@ export function registerDeathTrackerHooks() {
       await new Promise(r => setTimeout(r, 200));
       const damagedTokenIds = window._lastSquadDamagedTokenIds ? [...window._lastSquadDamagedTokenIds] : [];
       
-      const liveMinions = minions.filter(m => m?.actor && !m.actor.statuses?.has(defeatedStatusId));
+      
+      
+      const queuedToDie = window._dsctManualKillAccumulator?.tokenIds ?? new Set();
+      const standing = minions.filter(m => m?.actor && !m.actor.statuses?.has(defeatedStatusId));
+      const liveMinions = standing.filter(m => !queuedToDie.has(m.tokenId));
+      const alreadyQueued = standing.length - liveMinions.length;
       if (liveMinions.length === 0) return;
 
       
@@ -1548,7 +1565,7 @@ export function registerDeathTrackerHooks() {
       const freshHp    = group.system?.staminaValue ?? newHp;
       const effectiveNumToKill = freshHp <= 0
         ? liveMinions.length
-        : Math.max(0, liveMinions.length - Math.ceil(freshHp / indivHP));
+        : Math.max(0, standing.length - Math.ceil(freshHp / indivHP) - alreadyQueued);
       if (effectiveNumToKill <= 0) return;
 
       

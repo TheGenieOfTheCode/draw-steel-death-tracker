@@ -1197,6 +1197,14 @@ const _liveContext = (ctx) => {
 
   const lockedIds = new Set([...ctx.lockedIds].filter(id => poolTokenIds.has(id)));
   const preSelectedIds = new Set([...ctx.preSelectedIds].filter(id => poolTokenIds.has(id)));
+  const short = numToKill - new Set([...lockedIds, ...preSelectedIds]).size;
+  if (short > 0) {
+    const damaged = window._lastSquadDamagedTokenIds ?? new Set();
+    const spare = [...poolTokenIds]
+      .filter(id => !lockedIds.has(id) && !preSelectedIds.has(id))
+      .sort((a, b) => damaged.has(b) - damaged.has(a));
+    for (const id of spare.slice(0, short)) preSelectedIds.add(id);
+  }
   return { ...ctx, poolTokenIds, lockedIds, preSelectedIds, numToKill };
 };
 

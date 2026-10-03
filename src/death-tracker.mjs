@@ -1699,12 +1699,7 @@ export function registerDeathTrackerHooks() {
 
       if (dbg) console.log(`Death Tracker | DT | processDeath: origNumToKill=${numToKill} effectiveNumToKill=${effectiveNumToKill} killCount=${killCount} deferred=${deferredCount} freshHp=${freshHp} damagedTokenIds=[${damagedTokenIds.join(',')}]`);
 
-      if (!setting('autoAssignDamagedMinion')) {
-        
-        if (freshHp <= 0) _queueManualKillTargets(new Set(pickable.map(m => m.tokenId).filter(Boolean)), []);
-        return;
-      }
-
+      const autoAssign = setting('autoAssignDamagedMinion');
       const eligibleDamaged = damagedTokenIds.filter(id => pickable.find(m => m.tokenId === id));
       const damagedNames = damagedTokenIds.map(id => canvas.tokens.get(id)?.actor?.name ?? id);
       const groupName = group.name ?? 'Squad';
@@ -1718,7 +1713,7 @@ export function registerDeathTrackerHooks() {
         return;
       }
       if (dbg) console.log(`Death Tracker | DT | DEFER | eligibleDamaged=${eligibleDamaged.length} killCount=${killCount}`);
-      if (eligibleDamaged.length === killCount) {
+      if (autoAssign && eligibleDamaged.length === killCount) {
         if (dbg) console.log('Death Tracker | DT | DEFER | branch: oneMustDie, the damaged are exactly the toll');
         oneMustDie(eligibleDamaged, extraLines);
         return;
@@ -1759,10 +1754,11 @@ export function registerDeathTrackerHooks() {
         .filter(m => m.tokenId && !eligibleDamaged.includes(m.tokenId))
         .map(m => m.tokenId);
       const sortedUndamaged = _sortCandidates(undamaged, new Set(eligibleDamaged));
-      if (dbg) console.log(`Death Tracker | DT | DEFER | branch: picker, locked=${eligibleDamaged.length} undamagedCandidates=${undamaged.length} stillToFind=${killCount - eligibleDamaged.length}`);
+      if (dbg) console.log(`Death Tracker | DT | DEFER | branch: picker, ${autoAssign ? 'locked' : 'preselected'}=${eligibleDamaged.length} undamagedCandidates=${undamaged.length} stillToFind=${killCount - eligibleDamaged.length}`);
+      const fill = sortedUndamaged.slice(0, killCount - eligibleDamaged.length);
       _queueManualPickerContext({
-        lockedIds:      new Set(eligibleDamaged),
-        preSelectedIds: new Set(sortedUndamaged.slice(0, killCount - eligibleDamaged.length)),
+        lockedIds:      new Set(autoAssign ? eligibleDamaged : []),
+        preSelectedIds: new Set(autoAssign ? fill : [...eligibleDamaged, ...fill]),
         poolTokenIds:   new Set(pickable.map(m => m.tokenId).filter(Boolean)),
         numToKill:      killCount,
         groupName,

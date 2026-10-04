@@ -690,6 +690,12 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
     return [t.id, { combatant: c, wasDefeated: !!c?.defeated }];
   }));
 
+  const standing = [...seatedBefore.values()].filter(s => s.wasDefeated).map(s => reviveUpdate(s.combatant));
+  if (standing.length) {
+    _tm(`step 2: ${standing.length} combatant(s) back on their feet in one update`);
+    await game.combat.updateEmbeddedDocuments('Combatant', standing, { ...txn, dsdtRevive: true });
+  }
+
   _tm(`step 2: ${woken.length} status(es) in sequence`);
   for (const { t } of woken) {
     await safeToggleStatusEffect(t.actor, defeatedStatusId, { overlay: true, active: false });
@@ -746,12 +752,6 @@ const _doReviveV3 = async ({ tokenIds, skipGroupHpRestore = false }) => {
     _tm(`step 3a: ${tokenUpdates.length} token(s) in one update`);
     await _updateTokens(tokenUpdates, txn);
     _tm('step 3a: done');
-  }
-
-  const standing = plan.filter(p2 => p2.wasDefeated).map(p2 => reviveUpdate(p2.combatant));
-  if (standing.length) {
-    _tm(`step 3b: ${standing.length} combatant(s) back on their feet in one update`);
-    await game.combat.updateEmbeddedDocuments('Combatant', standing, { ...txn, dsdtRevive: true });
   }
 
   const newCombatants = plan.filter(p2 => p2.needsCombatant).map(({ t, savedGroupId }) => {

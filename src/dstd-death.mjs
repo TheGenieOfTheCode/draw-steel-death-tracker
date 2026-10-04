@@ -155,9 +155,7 @@ function _installUndoDeathHook(root) {
     
     
     
-    markPendingRevival(tokenUuid);
-    const socket = dtSocket();
-    socket?.executeForEveryone('dt.dstdPendingRevival', tokenUuid);
+    announcePendingRevival(tokenUuid);
 
     if (game.users.activeGM?.isSelf) {
       setTimeout(() => runDstdUndoRevival(tokenUuid), 500);
@@ -182,6 +180,11 @@ function _installUndoDeathHook(root) {
 export function markPendingRevival(tokenUuid, ttl = 8000) {
   _dsctPendingRevival.add(tokenUuid);
   setTimeout(() => _dsctPendingRevival.delete(tokenUuid), ttl);
+}
+
+export function announcePendingRevival(tokenUuid) {
+  markPendingRevival(tokenUuid);
+  dtSocket()?.executeForEveryone('dt.dstdPendingRevival', tokenUuid);
 }
 
 export function queueDstdUndoRevival(tokenUuid, delay = 500) {
@@ -291,3 +294,4 @@ export const registerDeathTrackerDstd = () => {
 };
 
 services.provide('markPendingRevival', markPendingRevival);
+services.provide('announcePendingRevival', announcePendingRevival);

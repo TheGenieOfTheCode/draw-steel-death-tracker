@@ -8,10 +8,12 @@ const DBG = () => setting('debugMode');
 const _deathGrace = new Set();
 
 
+export const keepsShown = (actor) => actor?.effects?.some((e) => !e.disabled && e.flags?.[M]?.keepVisible) ?? false;
+
 const isDefeatedAndHiding = (tokenDoc) =>
   (readFlag(game.user, 'hideDefeated') ?? false) === true &&
   (tokenDoc?.actor?.statuses?.has(CONFIG.specialStatusEffects?.DEFEATED ?? 'dead') ?? false) &&
-  !isDeathDeferred(tokenDoc?.actor);
+  !isDeathDeferred(tokenDoc?.actor) && !keepsShown(tokenDoc?.actor);
 
 export const registerDefeatedTokenVisibility = () => {
   const usingLibWrapper = !!game.modules.get('lib-wrapper')?.active;
@@ -109,6 +111,10 @@ export const registerDefeatedTokenVisibility = () => {
     }, graceDuration);
   });
 
+  const onKeepShown = (effect) => { if (effect?.flags?.[M]?.keepVisible) refreshDefeatedVisibility(); };
+  Hooks.on('createActiveEffect', onKeepShown);
+  Hooks.on('deleteActiveEffect', onKeepShown);
+
   Hooks.on('getSceneControlButtons', (controls) => {
     const tokenControl = controls.tokens ?? controls.token;
     if (!tokenControl) return;
@@ -139,7 +145,7 @@ const refreshDefeatedVisibility = () => {
 
   if (hiding) {
     for (const t of canvas.tokens.placeables) {
-      if (!t.actor?.statuses?.has(defeatedStatusId) || isDeathDeferred(t.actor)) continue;
+      if (!t.actor?.statuses?.has(defeatedStatusId) || isDeathDeferred(t.actor) || keepsShown(t.actor)) continue;
       t.release();
       t.setTarget(false, { releaseOthers: false });
     }

@@ -66,16 +66,19 @@
       "defeatedTurn": "{name} is defeated and cannot take a turn. Revive them first.",
       "olderCombatTools": "Draw Steel: Combat Tools {version} still has its own Death Tracker, so Draw Steel: Death Tracker is staying off to avoid handling every death twice. Update Combat Tools, or turn its Death Tracker off, and reload."
     },
-    "panel": {
-      "title": {
-        "DeathTrackerSettings": "Death Tracker Settings"
-      }
-    },
     "picker": {
       "pickCount": "Pick up to {max} target{s} · {n} selected",
       "selectedCount": "{n} selected",
       "titleDeath": "Death Picker",
       "titleRaise": "Raise Dead"
+    },
+    "settingHeader": {
+      "MinionDeaths": "Minion Deaths",
+      "DeathAnimation": "Death Animation",
+      "FallenCreatures": "Fallen Creatures",
+      "RevivesAndUndo": "Revives and Undo",
+      "CombatTracker": "Draw Steel Combat Tracker",
+      "Debug": "Debug"
     },
     "setting": {
       "autoAssignDamagedMinion": {
@@ -117,11 +120,6 @@
       "deathPickerDimAll": {
         "hint": "Faintly mark every minion you could pick, so the choices are easy to see. Turn it off for a cleaner map.",
         "name": "Dim Highlight All Candidates"
-      },
-      "deathTrackerSettings": {
-        "hint": "The death animation, clearing the fallen when an encounter ends, what a revival brings back, and how minion deaths are decided.",
-        "label": "Configure Death Tracker",
-        "name": "Death Tracker Settings"
       },
       "gmControlsAllDeathPickers": {
         "hint": "The Director always chooses who dies, even when a player dealt the damage.",

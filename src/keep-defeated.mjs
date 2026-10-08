@@ -1,5 +1,5 @@
 import { DT_ID as M, readFlag, setting, dtSocket } from './dt-core.mjs';
-import { services } from './ctlib.mjs';
+import { services, executeAsDirector } from './ctlib.mjs';
 
 const hidingDefeated = () => readFlag(game.user, 'hideDefeated') === true;
 
@@ -49,7 +49,7 @@ export const reviveCombatant = async (combatant) => {
   const combat = combatant?.parent;
   if (!combat) return;
   if (combat.isOwner) return combat.updateEmbeddedDocuments('Combatant', [reviveUpdate(combatant)], { dsdtRevive: true });
-  return dtSocket()?.executeAsGM('dt.reviveCombatant', combat.id, combatant.id);
+  return executeAsDirector(dtSocket(), 'dt.reviveCombatant', combat.id, combatant.id);
 };
 
 const _syncDockHiding = () => document.body.classList.toggle('dsdt-hiding-defeated', hidingDefeated());

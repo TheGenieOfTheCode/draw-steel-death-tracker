@@ -6,6 +6,7 @@ import { registerPickerLock, setPickerLockLocal, clearPickerLockLocal, releasePi
 import { DT_ID, readFlag, writeFlag, setting } from './dt-core.mjs';
 import { registerDeathTrackerDstd, queueDstdUndoRevival, markPendingRevival } from './dstd-death.mjs';
 import { reviveCombatant } from './keep-defeated.mjs';
+import { executeAsDirector } from './ctlib.mjs';
 
 export { registerDeathTrackerHooks, registerPickerLock, registerDeferDeath, registerDeathVisuals, registerDefeatedTokenVisibility, registerDeathTrackerDstd };
 
@@ -40,11 +41,11 @@ export const registerDeathTrackerSockets = (socket) => {
         for (const id of ctx.lockedIds)      autoResult.push(id);
         for (const id of ctx.preSelectedIds) autoResult.push(id);
       }
-      socket.executeAsGM('dt.manualModePickerResult', requestId, autoResult);
+      executeAsDirector(socket, 'dt.manualModePickerResult', requestId, autoResult);
       return;
     }
     const picked = await _runManualModePicker(contexts);
-    socket.executeAsGM('dt.manualModePickerResult', requestId, picked ? [...picked] : null);
+    executeAsDirector(socket, 'dt.manualModePickerResult', requestId, picked ? [...picked] : null);
   });
 
   socket.register('dt.manualModePickerResult', (requestId, pickedArray) => {

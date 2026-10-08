@@ -1,4 +1,5 @@
 import { DT_ID, LEGACY_ID, writeFlag } from './dt-core.mjs';
+import { isPrimaryGM } from './ctlib.mjs';
 
 const L = (key) => game.i18n.localize(`DSDT.setting.${key}`);
 const DSTD = 'draw-steel-target-damage';
@@ -101,7 +102,7 @@ Hooks.on('renderSettingsConfig', (_app, html) => {
 });
 
 const minionDeathConflict = async () => {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isPrimaryGM()) return;
   if (!game.modules.get(DSTD)?.active) return;
   if (!game.settings.get(DT_ID, 'overrideMinionDefeat')) return;
   let theirValue;
@@ -196,7 +197,7 @@ export const registerDeathTrackerSettings = () => {
 };
 
 export const migrateFromCombatTools = async () => {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isPrimaryGM()) return;
   if (game.settings.get(DT_ID, 'migratedFromCombatTools')) return;
   const world = game.settings.storage.get('world');
   const stored = (id, key) => world?.getSetting(`${id}.${key}`);

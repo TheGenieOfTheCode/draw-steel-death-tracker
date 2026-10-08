@@ -1,5 +1,5 @@
 import { setting } from './dt-core.mjs';
-import { getSquadGroup, safeDelete, registerStatusGroup } from './ctlib.mjs';
+import { getSquadGroup, safeDelete, registerStatusGroup, isPrimaryGM } from './ctlib.mjs';
 
 export const DEFER_DEATH = 'dsctDeferDeath';
 
@@ -33,7 +33,7 @@ export function registerDeferDeath() {
 
   
   Hooks.on('createActiveEffect', async (effect) => {
-    if (!game.users.activeGM?.isSelf) return;
+    if (!isPrimaryGM()) return;
     if (!effect?.statuses?.has(DEFER_DEATH)) return;
     const actor = effect.parent;
     if (actor?.documentName !== 'Actor' || !actor.system?.isMinion) return;
@@ -66,7 +66,7 @@ function registerDefeatBlock() {
 
 function registerReleaseRecheck() {
   Hooks.on('deleteActiveEffect', async (effect) => {
-    if (!game.users.activeGM?.isSelf) return;
+    if (!isPrimaryGM()) return;
     if (!effect?.statuses?.has(DEFER_DEATH)) return;
     const actor = effect.parent;
     if (actor?.documentName !== 'Actor') return;

@@ -1,5 +1,6 @@
 import { readFlag, dropFlags, setting } from './dt-core.mjs';
 import { isDeathDeferred } from './defer-death.mjs';
+import { isPrimaryGM } from './ctlib.mjs';
 
 
 const FILTERS = 'dsctDeathFilters';
@@ -253,7 +254,7 @@ export function clearDeathPending(tokens = null) {
 }
 
 async function _migrateStoredDeathLook() {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isPrimaryGM()) return;
   for (const scene of game.scenes) {
     const updates = [];
     for (const doc of scene.tokens) {

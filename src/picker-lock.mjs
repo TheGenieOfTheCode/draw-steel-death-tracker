@@ -1,5 +1,5 @@
 import { DT_ID as M, readFlag, dtSocket } from './dt-core.mjs';
-import { revealPickerUi } from './ctlib.mjs';
+import { revealPickerUi, executeAsDirector } from './ctlib.mjs';
 
 const BODY_CLASS = 'dsct-picker-lock';
 
@@ -104,7 +104,7 @@ export async function resyncPickerLock() {
     return;
   }
   if (!socket) return;
-  const stillAsking = await socket.executeAsGM('dt.queryPickerLock').catch(() => false);
+  const stillAsking = await executeAsDirector(socket, 'dt.queryPickerLock').catch(() => false);
   if (stillAsking) setPickerLockLocal(true);
 }
 

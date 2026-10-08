@@ -1,6 +1,6 @@
 import { DT_ID as M, readFlag, readFlags, writeFlag, clearFlag, dropFlags, combatToolsFlag, setting, dtSocket } from './dt-core.mjs';
 import { installRevivalHoverPreview } from './defeated-token-visibility.mjs';
-import { setRaisedDeadVisible, activateTokenLayer, clearPreviewTokens, services, beginPickerOverlay, endPickerOverlay, setPickerTarget, removePickerTarget, clearPickerArrows, safeToggleStatusEffect, safeUpdate, getSquadGroup, MATERIAL_ICONS, safeCreateEmbedded, safeDelete, tokenAt, toGrid, chooseFreeSquare, applicationSignature } from './ctlib.mjs';
+import { setRaisedDeadVisible, activateTokenLayer, clearPreviewTokens, services, beginPickerOverlay, endPickerOverlay, setPickerTarget, removePickerTarget, clearPickerArrows, safeToggleStatusEffect, safeUpdate, getSquadGroup, MATERIAL_ICONS, safeCreateEmbedded, safeDelete, tokenAt, toGrid, chooseFreeSquare, applicationSignature, executeAsDirector, isPrimaryGM, primaryGM } from './ctlib.mjs';
 import { renderDeathMessage, registerDeathCardRefresh } from './death-message.mjs';
 import { beginPickerLock, endPickerLock, clearPickerLockLocal } from './picker-lock.mjs';
 import { isDeathDeferred, isTokenDeathDeferred } from './defer-death.mjs';
@@ -62,7 +62,7 @@ let _rescheduleSquad = null;
 let _reaperSent = 'null';
 const _refreshReaper = foundry.utils.debounce(() => {
   const api = _triggersApi();
-  if (!api?.setReaper || !game.users.activeGM?.isSelf) return;
+  if (!api?.setReaper || !isPrimaryGM()) return;
   const held = _heldByTriggers();
   const picking = _pickerOpen;
   const impending = !!window._dsctManualKillAccumulator?.pickerContexts?.length;
@@ -1446,8 +1446,8 @@ export const _addDamagedToken = (tokenId, userId = null) => {
 };
 
 export const reportSquadDamage = (tokenId) => {
-  if (game.users.activeGM?.isSelf) _addDamagedToken(tokenId);
-  else dtSocket()?.executeAsGM('dt.reportDamagedToken', tokenId, game.user.id);
+  if (isPrimaryGM()) _addDamagedToken(tokenId);
+  else executeAsDirector(dtSocket(), 'dt.reportDamagedToken', tokenId, game.user.id);
 };
 
 export const deathTrackerExcludedTypes = new Set();
@@ -1515,7 +1515,7 @@ export function registerDeathTrackerHooks() {
   Hooks.on('combatRound', () => { cleanBaseNpcActors(); });
 
   Hooks.on('createActiveEffect', async (effect) => {
-    if (!game.users.activeGM?.isSelf) return;
+    if (!isPrimaryGM()) return;
 
     const statuses = [...(effect.statuses ?? [])];
 
@@ -1590,8 +1590,8 @@ export function registerDeathTrackerHooks() {
       return;
     }
     const dbg = setting('debugMode');
-    if (dbg) console.log('Death Tracker | DT | updateCombatantGroup fired', { groupType: group.type, isGM: game.users.activeGM?.isSelf, override: setting('overrideMinionDefeat'), changes });
-    if (!setting('overrideMinionDefeat') || !game.users.activeGM?.isSelf) return;
+    if (dbg) console.log('Death Tracker | DT | updateCombatantGroup fired', { groupType: group.type, isGM: isPrimaryGM(), override: setting('overrideMinionDefeat'), changes });
+    if (!setting('overrideMinionDefeat') || !isPrimaryGM()) return;
 
     
     
@@ -1854,7 +1854,7 @@ export function registerDeathTrackerHooks() {
   _rescheduleSquad = (group) => scheduleSquadReconcile(group, { delay: 300 });
 
   Hooks.on('dst.queueChanged', () => {
-    if (!game.users.activeGM?.isSelf) return;
+    if (!isPrimaryGM()) return;
     if (!_triggersHolding() && _parkedForHeld.size) {
       for (const id of _parkedForHeld) {
         const group = game.combat?.groups?.get(id);
@@ -1908,7 +1908,7 @@ export function registerDeathTrackerHooks() {
 
   Hooks.on('deleteActiveEffect', async (effect) => {
     if (!setting('deathMarkerEnabled')) return;
-    if (!game.users.activeGM?.isSelf) return;
+    if (!isPrimaryGM()) return;
     if (![...(effect.statuses ?? [])].includes('dead')) return;
     const actor = effect.parent;
     if (!actor) return;
@@ -1922,7 +1922,7 @@ export function registerDeathTrackerHooks() {
 
   Hooks.on('updateToken', async (doc, changes) => {
     if (!setting('deathMarkerEnabled')) return;
-    if (!game.users.activeGM?.isSelf) return;
+    if (!isPrimaryGM()) return;
     if (changes.x === undefined && changes.y === undefined) return;
     const tileId = readFlag(doc, 'deathMarkerTileId');
     if (!tileId) return;
@@ -1935,7 +1935,7 @@ export function registerDeathTrackerHooks() {
   });
 
   Hooks.on('canvasReady', async () => {
-    if (!game.users.activeGM?.isSelf) return;
+    if (!isPrimaryGM()) return;
     
     for (const tile of [...canvas.tiles.placeables]) {
       const old = readFlag(tile.document, 'deathSkullFor');
@@ -1990,7 +1990,7 @@ export function registerDeathTrackerHooks() {
   const _deletingCombatIds = new Set();
 
   Hooks.on('deleteToken', async (tokenDoc) => {
-    if (!game.users.activeGM?.isSelf) return;
+    if (!isPrimaryGM()) return;
     const dbg = setting('debugMode');
     if (dbg) console.log(`Death Tracker | deleteToken | fired for token id=${tokenDoc.id} name=${tokenDoc.name}`);
     if (setting('cleanOrphanedCombatants')) {
@@ -2032,7 +2032,7 @@ export function registerDeathTrackerHooks() {
   });
 
   Hooks.on('deleteActor', async (actor) => {
-    if (!game.users.activeGM?.isSelf || !setting('cleanOrphanedCombatants')) return;
+    if (!isPrimaryGM() || !setting('cleanOrphanedCombatants')) return;
     const dbg = setting('debugMode');
     if (dbg) console.log(`Death Tracker | deleteActor | fired for actor name=${actor.name} id=${actor.id}`);
     for (const combat of game.combats.contents) {
@@ -2064,7 +2064,7 @@ export function registerDeathTrackerHooks() {
   });
 
   Hooks.on('deleteCombat', async (combat) => {
-    if (!setting('clearSkullsOnCombatEnd') || !game.users.activeGM?.isSelf) return;
+    if (!setting('clearSkullsOnCombatEnd') || !isPrimaryGM()) return;
 
     _deletingCombatIds.add(combat.id);
     try {
@@ -2108,8 +2108,8 @@ export function registerDeathTrackerHooks() {
 
     const revive = async (ids) => {
       if (!ids?.length) return;
-      if (!game.users.activeGM?.isSelf) {
-        dtSocket()?.executeAsGM('dt.undoDeathMessage', msg.id, game.userId, ids);
+      if (!isPrimaryGM()) {
+        executeAsDirector(dtSocket(), 'dt.undoDeathMessage', msg.id, game.userId, ids);
         return;
       }
       await _doReviveV3({ tokenIds: new Set(ids) });
@@ -2126,7 +2126,7 @@ const formatNames = (names) =>
     .format(names.map(n => `<strong>${n}</strong>`));
 
 const cleanOrphanedCombatants = async () => {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isPrimaryGM()) return;
   const dbg = setting('debugMode');
   for (const combat of game.combats.contents) {
     if (dbg) {
@@ -2144,7 +2144,7 @@ const cleanOrphanedCombatants = async () => {
 };
 
 const cleanBaseNpcActors = async () => {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isPrimaryGM()) return;
   const actors = game.actors.filter(a =>
     !_isDTExcluded(a) &&
     !a.prototypeToken?.actorLink &&
@@ -2324,11 +2324,11 @@ const resolveBreakpointUser = () => {
     const author = game.users.get(lastMsg.author?.id ?? lastMsg.user?.id);
     if (author && !author.isGM && author.active) return author.id;
   }
-  return game.users.activeGM?.id ?? game.user.id;
+  return primaryGM()?.id ?? game.user.id;
 };
 
 const resolvePickerUserId = () => {
-  if (setting('gmControlsAllDeathPickers')) return game.users.activeGM?.id ?? game.user.id;
+  if (setting('gmControlsAllDeathPickers')) return primaryGM()?.id ?? game.user.id;
   const storedUserId = window._lastSquadDamageUserId;
   const storedUser   = storedUserId ? game.users.get(storedUserId) : null;
   const userId = (storedUser && !storedUser.isGM && storedUser.active)
@@ -2336,7 +2336,7 @@ const resolvePickerUserId = () => {
     : resolveBreakpointUser();
   const user = game.users.get(userId);
   if (user && !user.isGM && readFlag(user, 'cedeDeathPickerToGM')) {
-    return game.users.activeGM?.id ?? game.user.id;
+    return primaryGM()?.id ?? game.user.id;
   }
   return userId;
 };
@@ -2477,7 +2477,7 @@ export const runRaiseDeadUI = () => {
 };
 
 export const reviveTokens = async (tokenIds, { skipGroupHpRestore = false } = {}) => {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isPrimaryGM()) return;
   await _doReviveV3({ tokenIds: new Set(tokenIds), skipGroupHpRestore });
 };
 

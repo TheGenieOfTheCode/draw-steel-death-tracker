@@ -2,7 +2,7 @@ import { setting, dtSocket } from './dt-core.mjs';
 import { reviveTokens, deathGroupFor, resolveDeathsNow, reportSquadDamage } from './death-tracker.mjs';
 import { installRevivalHoverPreview } from './defeated-token-visibility.mjs';
 import { releasePickerLock } from './picker-lock.mjs';
-import { DSTD, DSTD_PANEL, DSTD_ROW, applicationSignature, registerPanelDecorator, services } from './ctlib.mjs';
+import { DSTD, DSTD_PANEL, DSTD_ROW, applicationSignature, registerPanelDecorator, services, executeAsDirector, isPrimaryGM } from './ctlib.mjs';
 
 function _rowTargetDefeated(el) {
   const key = el?.closest(DSTD_ROW)?.dataset?.targetKey;
@@ -157,17 +157,17 @@ function _installUndoDeathHook(root) {
     
     announcePendingRevival(tokenUuid);
 
-    if (game.users.activeGM?.isSelf) {
+    if (isPrimaryGM()) {
       setTimeout(() => runDstdUndoRevival(tokenUuid), 500);
     } else {
       if (!setting('playerCanUndoCausedDeaths')) return;
       if (!socket) return;
-      socket.executeAsGM('dt.dstdUndoDeath', tokenUuid);
+      executeAsDirector(socket, 'dt.dstdUndoDeath', tokenUuid);
     }
   }, { capture: true });
 
   root.addEventListener('click', (e) => {
-    if (game.users.activeGM?.isSelf || setting('playerCanUndoCausedDeaths')) return;
+    if (isPrimaryGM() || setting('playerCanUndoCausedDeaths')) return;
     const undoDmgBtn = e.target.closest('[data-dstd-action="undoDamage"]');
     if (!undoDmgBtn?.closest(DSTD_PANEL)) return;
     
@@ -284,7 +284,7 @@ export const registerDeathTrackerDstd = () => {
   registerPanelDecorator({ id: 'death-tracker-late', priority: 70, decorate: ({ panel }) => {
     if (!panel) return;
     _installDirectorFooter(panel);
-    if (!game.users.activeGM?.isSelf && !setting('playerCanUndoCausedDeaths')) {
+    if (!isPrimaryGM() && !setting('playerCanUndoCausedDeaths')) {
       for (const btn of panel.querySelectorAll('[data-dstd-action="undoDamage"]')) {
         if (_rowTargetDefeated(btn)) btn.disabled = true;
       }

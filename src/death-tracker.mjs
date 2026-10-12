@@ -1,4 +1,4 @@
-import { DT_ID as M, readFlag, readFlags, writeFlag, clearFlag, dropFlags, combatToolsFlag, setting, dtSocket } from './dt-core.mjs';
+import { DT_ID as M, readFlag, readFlags, writeFlag, clearFlag, dropFlags, setting, dtSocket } from './dt-core.mjs';
 import { installRevivalHoverPreview } from './defeated-token-visibility.mjs';
 import { setRaisedDeadVisible, activateTokenLayer, clearPreviewTokens, services, beginPickerOverlay, endPickerOverlay, setPickerTarget, removePickerTarget, clearPickerArrows, safeToggleStatusEffect, safeUpdate, getSquadGroup, MATERIAL_ICONS, safeCreateEmbedded, safeDelete, tokenAt, toGrid, chooseFreeSquare, applicationSignature, executeAsDirector, isPrimaryGM, primaryGM } from './ctlib.mjs';
 import { renderDeathMessage, registerDeathCardRefresh } from './death-message.mjs';
@@ -16,6 +16,10 @@ const _latestDstdCardId = () => game.messages?.contents
   ?.slice(-25)
   .reverse()
   .find(m => m?.flags?.['draw-steel-target-damage']?.state?.targets?.length)?.id ?? null;
+
+const SOURCED_STATUS_KEY = /^system\.statuses\.(frightened|taunted|grabbed)\.sources$/;
+const effectsSourcedBy = (actor, sourceUuid) => (sourceUuid ? (actor.appliedEffects ?? []).filter(e =>
+  (e.system?.changes ?? []).some(c => SOURCED_STATUS_KEY.test(c.key ?? '') && c.value === sourceUuid)) : []);
 
 export const noteDamageCause = ({ dstd = false, userId = null, sourceActorUuid = null, messageId = null, stated = false } = {}) => {
   const now = Date.now();
@@ -254,15 +258,9 @@ const _processTokenDeath = async (token, actor, { batchEntries = null } = {}) =>
   for (const t of canvas.tokens.placeables) {
     const a = t.actor;
     if (!a) continue;
-    const frightenedEffect = a.appliedEffects?.find(e => combatToolsFlag(e, 'frightened')?.sourceTokenId === token.id);
-    if (frightenedEffect) {
-      await safeDelete(frightenedEffect);
-      if (setting('debugMode')) console.log(`Death Tracker | DT | Removed Frightened from ${a.name} (source ${actor.name} died)`);
-    }
-    const tauntedEffect = a.appliedEffects?.find(e => combatToolsFlag(e, 'taunted')?.sourceTokenId === token.id);
-    if (tauntedEffect) {
-      await safeDelete(tauntedEffect);
-      if (setting('debugMode')) console.log(`Death Tracker | DT | Removed Taunted from ${a.name} (source ${actor.name} died)`);
+    for (const effect of effectsSourcedBy(a, actor.uuid)) {
+      await safeDelete(effect);
+      if (setting('debugMode')) console.log(`Death Tracker | DT | Removed ${effect.name} from ${a.name} (source ${actor.name} died)`);
     }
   }
 
@@ -438,10 +436,7 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
       for (const other of canvas.tokens.placeables) {
         const a = other.actor;
         if (!a) continue;
-        const fe = a.appliedEffects?.find(e => combatToolsFlag(e, 'frightened')?.sourceTokenId === t.id);
-        if (fe) { _tm(`step 3: deleting Frightened on ${a.name}`); await safeDelete(fe); }
-        const te = a.appliedEffects?.find(e => combatToolsFlag(e, 'taunted')?.sourceTokenId === t.id);
-        if (te) { _tm(`step 3: deleting Taunted on ${a.name}`); await safeDelete(te); }
+        for (const effect of effectsSourcedBy(a, t.actor?.uuid)) { _tm(`step 3: deleting ${effect.name} on ${a.name}`); await safeDelete(effect); }
       }
     }
 

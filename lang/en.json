@@ -22,7 +22,7 @@
         "summaryDestroyedOne": "1 was destroyed.",
         "summaryFallen": "{count} have fallen.",
         "summaryFallenOne": "1 has fallen.",
-        "undoFromCard": "Undo from the damage card"
+        "undoFromCard": "Undo from the damage message"
       }
     },
     "notice": {
@@ -134,7 +134,7 @@
         "name": "Pick Ambiguous Deaths"
       },
       "playerCanUndoCausedDeaths": {
-        "hint": "Players can undo a death they caused, from the chat message that reports it. Deaths dealt from a damage card are undone on the card itself.",
+        "hint": "Players can undo a death they caused, from the chat message that reports it. Deaths dealt from a damage message are undone on that message itself.",
         "name": "Players Can Undo Deaths Their Owned Actors Caused"
       },
       "suppressTrackerAutoDefeat": {

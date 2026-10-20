@@ -490,7 +490,7 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
     
     
     const batchEntries = [];
-    const animDuration = (setting('batchAnimationSafety') && tokens.length >= 8) ? 0 : setting('deathAnimationDuration');
+    const animDuration = ((setting('batchAnimationSafety') && tokens.length >= 8) || globalThis.ctlib?.reducedEffects?.()) ? 0 : setting('deathAnimationDuration');
     _tm(`step 4: starting visuals (animDuration=${animDuration}ms)`);
     await Promise.all(tokens.map(async (t) => {
       if (!canvas.tokens.get(t.id)) return;

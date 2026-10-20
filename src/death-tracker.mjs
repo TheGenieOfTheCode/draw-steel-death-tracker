@@ -1111,6 +1111,11 @@ const DSTD_MODULE = 'draw-steel-target-damage';
 
 const DSTD_ROW_GRACE_MS = 2000;
 
+const DSTD_CARD_IDLE_MS = 15000;
+
+const lastTouched = (a) => Math.max(0, a.appliedAt ?? 0, a.undoneAt ?? 0,
+  ...(Array.isArray(a.records) ? a.records.map(r => Math.max(r?.appliedAt ?? 0, r?.undoneAt ?? 0)) : []));
+
 const dstdStillApplying = () => {
   if (window._dsctDamageBatchDepth > 0) return 'damage still going out';
   const pending = window._dsctDstdRowPending;
@@ -1127,10 +1132,13 @@ const dstdStillApplying = () => {
     if (!targets) continue;
 
     
-    const rows = Object.entries(state.applications ?? {})
+    const entries = Object.entries(state.applications ?? {})
       .filter(([id, a]) => a && (a.kind === 'damage' || a.kind === 'healing' || /^(damage|healing)-/.test(id)))
-      .map(([, a]) => a.status);
-    if (!rows.length) continue;
+      .map(([, a]) => a);
+    if (!entries.length) continue;
+    const touched = Math.max(...entries.map(lastTouched));
+    if (touched && Date.now() - touched > DSTD_CARD_IDLE_MS) continue;
+    const rows = entries.map(a => a.status);
 
     const applied = rows.filter(st => st === 'applied').length;
     const undone = rows.filter(st => st === 'undone').length;

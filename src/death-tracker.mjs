@@ -2527,6 +2527,7 @@ export const cleanupPixi = () => {
 };
 
 export const runPowerWordKillUI = async (options = {}) => {
+  if (!game.user.isGM) { ui.notifications.warn(game.i18n.localize('DSDT.notice.dt.gmOnly')); return; }
 
   if (window._pwkActive) {
     if (!window._pwkQueue) window._pwkQueue = [];

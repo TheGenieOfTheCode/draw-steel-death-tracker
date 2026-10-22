@@ -161,6 +161,7 @@ function _installUndoDeathHook(root) {
       setTimeout(() => runDstdUndoRevival(tokenUuid), 500);
     } else {
       if (!setting('playerCanUndoCausedDeaths')) return;
+      const socket = dtSocket();
       if (!socket) return;
       executeAsDirector(socket, 'dt.dstdUndoDeath', tokenUuid);
     }

@@ -5,7 +5,7 @@ import { registerDefeatedTokenVisibility } from './defeated-token-visibility.mjs
 import { registerPickerLock, setPickerLockLocal, clearPickerLockLocal, releasePickerLock, isPickerLocked } from './picker-lock.mjs';
 import { DT_ID, readFlag, writeFlag, setting } from './dt-core.mjs';
 import { registerDeathTrackerDstd, queueDstdUndoRevival, markPendingRevival } from './dstd-death.mjs';
-import { reviveCombatant } from './keep-defeated.mjs';
+import { reviveCombatant, markDefeated } from './keep-defeated.mjs';
 import { executeAsDirector } from './ctlib.mjs';
 
 export { registerDeathTrackerHooks, registerPickerLock, registerDeferDeath, registerDeathVisuals, registerDefeatedTokenVisibility, registerDeathTrackerDstd };
@@ -77,6 +77,10 @@ export const registerDeathTrackerSockets = (socket) => {
   socket.register('dt.reviveCombatant', (combatId, combatantId) => {
     const combatant = game.combats.get(combatId)?.combatants.get(combatantId);
     if (combatant) return reviveCombatant(combatant);
+  });
+  socket.register('dt.markDefeated', (combatId, combatantIds, options) => {
+    const combat = game.combats.get(combatId);
+    if (combat) return markDefeated(combatantIds.map((id) => combat.combatants.get(id)), options);
   });
 
   socket.register('dt.setPickerLock',   (active) => setPickerLockLocal(active));

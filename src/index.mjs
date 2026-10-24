@@ -1,4 +1,4 @@
-import { registerDeathTrackerHooks, runRaiseDeadUI, reviveAll, runPowerWordKillUI, cleanupPixi, _runManualModePicker, _SQUAD_COLORS, _addDamagedToken, deathTrackerExcludedTypes, reviveTokens, mayUndoDeath } from './death-tracker.mjs';
+import { registerDeathTrackerHooks, runRaiseDeadUI, reviveAll, runPowerWordKillUI, cleanupPixi, _runManualModePicker, _SQUAD_COLORS, _addDamagedToken, deathTrackerExcludedTypes, reviveTokens, mayUndoDeath, settleDeaths } from './death-tracker.mjs';
 import { registerDeferDeath, isDeathDeferred, DEFER_DEATH } from './defer-death.mjs';
 import { registerDeathVisuals } from './death-visuals.mjs';
 import { registerDefeatedTokenVisibility } from './defeated-token-visibility.mjs';
@@ -86,4 +86,5 @@ export const registerDeathTrackerSockets = (socket) => {
   socket.register('dt.setPickerLock',   (active) => setPickerLockLocal(active));
   socket.register('dt.clearPickerLock', () => clearPickerLockLocal());
   socket.register('dt.queryPickerLock', () => isPickerLocked());
+  socket.register('dt.settleDeaths', (timeout) => settleDeaths(timeout));
 };

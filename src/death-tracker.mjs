@@ -1181,6 +1181,25 @@ let _forceSettleNow = null;
 
 export const resolveDeathsNow = () => _forceSettleNow?.() ?? false;
 
+const SETTLE_GRACE_MS = 250;
+const SETTLE_POLL_MS = 100;
+
+const _deathsSettling = () => _stillSettling() || !!_pickerOpen || deathSettlementPending();
+
+export const settleDeaths = async (timeout = 120000) => {
+  if (!isPrimaryGM()) return executeAsDirector(dtSocket(), 'dt.settleDeaths', timeout);
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const until = Date.now() + timeout;
+  await wait(SETTLE_GRACE_MS);
+  resolveDeathsNow();
+  let calm = 0;
+  while (calm < 2 && Date.now() < until) {
+    await wait(SETTLE_POLL_MS);
+    calm = _deathsSettling() ? 0 : calm + 1;
+  }
+  return calm >= 2;
+};
+
 const _MANUAL_KILL_ACCUM_MS = 100;
 
 const _liveContext = (ctx) => {
@@ -2873,5 +2892,6 @@ services.provide('deathSavedSquad', (tokenDoc) => readFlag(tokenDoc, 'savedGroup
 services.provide('forgetDeathSavedSquad', (tokenDoc) => safeUpdate(tokenDoc, { flags: dropFlags(tokenDoc, 'savedGroupId') }));
 services.provide('deathMessagesFor', deathMessagesFor);
 services.provide('resolveDeathsNow', resolveDeathsNow);
+services.provide('settleDeaths', settleDeaths);
 services.provide('minionOverrideActive', () => setting('overrideMinionDefeat'));
 

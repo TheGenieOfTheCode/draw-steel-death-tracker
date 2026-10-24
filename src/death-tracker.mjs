@@ -10,6 +10,10 @@ import { markDefeated, reviveUpdate } from './keep-defeated.mjs';
 
 
 const CAUSE_TTL_MS = 8000;
+const PICK_CONTROLS = [
+  { input: 'CTLIB.picker.help.click', action: 'CTLIB.picker.help.toggleToken' },
+  { input: 'CTLIB.picker.help.doubleClickEmpty', action: 'CTLIB.picker.confirm' },
+];
 let _damageCause = null;
 
 const _latestDstdCardId = () => game.messages?.contents
@@ -994,6 +998,9 @@ export const _runManualModePicker = (contexts) => new Promise((resolve) => {
     uiToggle: true,
     onConfirm: () => tryConfirm(),
     onCancel: () => { finish(); resolve(null); },
+    controls: PICK_CONTROLS,
+    cancelOnRightClick: !!setting('cancelOnRightClick'),
+    onRightClick: () => { if (setting('cancelOnRightClick')) { finish(); resolve(null); } },
   });
   const refreshNotif = () => {
     const summary = squads.map(s => `${s.groupName}: ${s.selected.size}/${s.numToKill}`).join(', ');
@@ -1086,7 +1093,6 @@ export const _runManualModePicker = (contexts) => new Promise((resolve) => {
 
   const onContextMenu = (e) => {
     e.preventDefault();
-    if (setting('cancelOnRightClick')) { finish(); resolve(null); }
   };
 
   canvas.stage.on('mousedown', onClick);
@@ -2401,6 +2407,13 @@ export const runRaiseDeadUI = () => {
       finish();
       ui.notifications.info(game.i18n.localize('DSDT.notice.dt.raiseDeadCancelled'));
     },
+    controls: PICK_CONTROLS,
+    cancelOnRightClick: !!setting('cancelOnRightClick'),
+    onRightClick: () => {
+      if (!setting('cancelOnRightClick')) return;
+      finish();
+      ui.notifications.info(game.i18n.localize('DSDT.notice.dt.raiseDeadCancelled'));
+    },
   });
   const syncStatus = () => {
     overlay.setStatus(game.i18n.format('DSDT.picker.selectedCount', { n: selected.size }));
@@ -2429,10 +2442,6 @@ export const runRaiseDeadUI = () => {
 
   const onContextMenu = (e) => {
     e.preventDefault();
-    if (setting('cancelOnRightClick')) {
-      finish();
-      ui.notifications.info(game.i18n.localize('DSDT.notice.dt.raiseDeadCancelled'));
-    }
   };
 
   const onClick = (event) => {
@@ -2722,6 +2731,9 @@ export const runPowerWordKillUI = async (options = {}) => {
     tokens: npcs,
     onConfirm: () => doKill(),
     onCancel: () => doCancel(),
+    controls: PICK_CONTROLS,
+    cancelOnRightClick: !!setting('cancelOnRightClick'),
+    onRightClick: () => { if (setting('cancelOnRightClick')) doCancel(); },
   });
   const syncStatus = () => {
     overlay.setStatus(
@@ -2774,11 +2786,6 @@ export const runPowerWordKillUI = async (options = {}) => {
   };
 
   const onClick = (event) => {
-    if (event.data.originalEvent.button === 2) {
-      if (setting('cancelOnRightClick')) doCancel();
-      return;
-    }
-
     if (event.data.originalEvent.button !== 0) return;
 
     const pos = event.data.getLocalPosition(canvas.app.stage);
@@ -2832,7 +2839,6 @@ export const runPowerWordKillUI = async (options = {}) => {
 
   const onContextMenu = (e) => {
     e.preventDefault();
-    if (setting('cancelOnRightClick')) doCancel();
   };
 
   const onMove = (event) => {

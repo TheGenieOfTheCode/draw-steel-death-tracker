@@ -151,13 +151,19 @@
       "deferDeathDescription": "<p>This creature does not die while this is on it. It can sit at 0 Stamina, keeping its token and its place in the order, until the status is removed. A squad minion carrying it is left out of the squad's deaths rather than cancelling one, and only one minion per squad can have it at a time.</p>"
     },
     "tooltip": {
-      "pingDead": "Left click to ping {name}",
-      "pingDeadCaptain": "Left click to ping {name}. Right click to hand on the crown.",
-      "releasePicker": "Close any open death picker and unlock damage for everyone",
-      "reviveGroup": "Bring this whole group back",
-      "settleDeathsNow": "Stop waiting for the rest of the damage and settle this squad now",
-      "undoRevives": "Undoing this revives {names}",
-      "undoRevivesUnknown": "Undoing this revives the fallen"
+      "releasePicker": "Closes any open death picker and unlocks damage for everyone.",
+      "settleDeathsNow": "Stops waiting for the rest of the damage and settles this squad now.",
+      "undoRevives": "Undoing this revives {names}.",
+      "undoRevivesUnknown": "Undoing this revives the fallen."
+    },
+    "tip": {
+      "fallen": { "category": "Fallen", "body": "Click to ping where they fell." },
+      "fallenCaptain": { "category": "Fallen Captain", "body": "Click to ping where they fell. Right-click to hand the captain's crown to another minion." },
+      "reviveGroup": { "title": "Revive the Group", "category": "Fallen", "body": "Brings this whole group back." },
+      "undoRevives": { "title": "Undo", "category": "Death Tracker" },
+      "settle": { "category": "Death Tracker" },
+      "release": { "category": "Death Tracker" },
+      "markerIcon": { "category": "Setting", "body": "Click to pick a new image. Now: {path}" }
     },
     "statusGroup": {
       "deathTracker": "Death Tracker"

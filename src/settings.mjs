@@ -1,5 +1,5 @@
 import { DT_ID, LEGACY_ID, writeFlag } from './dt-core.mjs';
-import { isPrimaryGM } from './ctlib.mjs';
+import { isPrimaryGM, setTip, tipFrom } from './ctlib.mjs';
 
 const L = (key) => game.i18n.localize(`DSDT.setting.${key}`);
 const DSTD = 'draw-steel-target-damage';
@@ -55,7 +55,7 @@ Hooks.on('renderSettingsConfig', (_app, html) => {
     const tile = document.createElement('button');
     tile.type = 'button';
     tile.className = 'dsdt-icon-tile';
-    tile.dataset.tooltip = picker.value;
+    setTip(tile, tipFrom('DSDT.tip.markerIcon', { title: L('deathMarkerIcon.name'), data: { path: picker.value } }));
     tile.setAttribute('aria-label', L('deathMarkerIcon.name'));
     const img = document.createElement('img');
     img.src = picker.value;
@@ -69,7 +69,7 @@ Hooks.on('renderSettingsConfig', (_app, html) => {
         picker.value = path;
         picker.dispatchEvent(new Event('change', { bubbles: true }));
         img.src = path;
-        tile.dataset.tooltip = path;
+        setTip(tile, tipFrom('DSDT.tip.markerIcon', { title: L('deathMarkerIcon.name'), data: { path } }));
       },
     }).render(true));
     picker.style.display = 'none';

@@ -2,7 +2,7 @@ import { setting, dtSocket } from './dt-core.mjs';
 import { reviveTokens, deathGroupFor, resolveDeathsNow, reportSquadDamage } from './death-tracker.mjs';
 import { installRevivalHoverPreview } from './defeated-token-visibility.mjs';
 import { releasePickerLock } from './picker-lock.mjs';
-import { DSTD, DSTD_PANEL, DSTD_ROW, applicationSignature, registerPanelDecorator, services, executeAsDirector, isPrimaryGM } from './ctlib.mjs';
+import { DSTD, DSTD_PANEL, DSTD_ROW, applicationSignature, registerPanelDecorator, services, executeAsDirector, isPrimaryGM, setTip, tipFrom } from './ctlib.mjs';
 
 function _rowTargetDefeated(el) {
   const key = el?.closest(DSTD_ROW)?.dataset?.targetKey;
@@ -28,7 +28,7 @@ function _dressRevivingButton(btn, ids) {
 
   if (!btn.classList.contains(REVIVE_CLASS)) {
     btn.classList.add(REVIVE_CLASS);
-    btn._dsctPlainTooltip = btn.dataset.tooltip ?? '';
+    btn._dsctPlainTooltip = { tooltip: btn.dataset.tooltip, tip: btn.dataset.dsctTip, tipClass: btn.dataset.dsctTipClass };
 
     const badge = document.createElement('span');
     badge.className = REVIVE_BADGE;
@@ -45,16 +45,24 @@ function _dressRevivingButton(btn, ids) {
     if (name) tally.set(name, (tally.get(name) ?? 0) + 1);
   }
   const names = [...tally].map(([name, n]) => (n > 1 ? `${name} x${n}` : name));
-  btn.dataset.tooltip = names.length
-    ? game.i18n.format('DSDT.tooltip.undoRevives', { names: names.join(', ') })
-    : game.i18n.localize('DSDT.tooltip.undoRevivesUnknown');
+  setTip(btn, tipFrom('DSDT.tip.undoRevives', {
+    body: names.length
+      ? game.i18n.format('DSDT.tooltip.undoRevives', { names: names.join(', ') })
+      : game.i18n.localize('DSDT.tooltip.undoRevivesUnknown'),
+  }));
 }
 
 function _undressRevivingButton(btn) {
   btn._dsctReviveIds = null;
   btn.classList.remove(REVIVE_CLASS);
   btn.querySelector(`.${REVIVE_BADGE}`)?.remove();
-  if (btn._dsctPlainTooltip !== undefined) btn.dataset.tooltip = btn._dsctPlainTooltip;
+  const plain = btn._dsctPlainTooltip;
+  if (plain !== undefined) {
+    for (const [key, value] of [['tooltip', plain.tooltip], ['dsctTip', plain.tip], ['dsctTipClass', plain.tipClass]]) {
+      if (value === undefined) delete btn.dataset[key];
+      else btn.dataset[key] = value;
+    }
+  }
 }
 
 function _markRevivingUndoButtons(panel) {
@@ -226,7 +234,7 @@ function _installDirectorFooter(panel) {
   settle.className = DSTD + '-action-button dsct-dt-settle';
   settle.append(_makeIcon('fa-solid fa-forward'));
   settle.appendChild(document.createTextNode(' ' + game.i18n.localize('DSDT.button.settleDeathsNow')));
-  settle.dataset.tooltip = game.i18n.localize('DSDT.tooltip.settleDeathsNow');
+  setTip(settle, tipFrom('DSDT.tip.settle', { title: game.i18n.localize('DSDT.button.settleDeathsNow'), body: game.i18n.localize('DSDT.tooltip.settleDeathsNow') }));
   settle.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -238,7 +246,7 @@ function _installDirectorFooter(panel) {
   release.className = DSTD + '-action-button dsct-dt-release';
   release.append(_makeIcon('fa-solid fa-hand'));
   release.appendChild(document.createTextNode(' ' + game.i18n.localize('DSDT.button.releasePicker')));
-  release.dataset.tooltip = game.i18n.localize('DSDT.tooltip.releasePicker');
+  setTip(release, tipFrom('DSDT.tip.release', { title: game.i18n.localize('DSDT.button.releasePicker'), body: game.i18n.localize('DSDT.tooltip.releasePicker') }));
   release.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();

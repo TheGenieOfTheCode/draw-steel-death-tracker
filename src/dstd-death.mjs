@@ -163,16 +163,7 @@ function _installUndoDeathHook(root) {
     
     
     
-    announcePendingRevival(tokenUuid);
-
-    if (isPrimaryGM()) {
-      setTimeout(() => runDstdUndoRevival(tokenUuid), 500);
-    } else {
-      if (!setting('playerCanUndoCausedDeaths')) return;
-      const socket = dtSocket();
-      if (!socket) return;
-      executeAsDirector(socket, 'dt.dstdUndoDeath', tokenUuid);
-    }
+    undoCausedDeath(tokenUuid);
   }, { capture: true });
 
   root.addEventListener('click', (e) => {
@@ -184,6 +175,23 @@ function _installUndoDeathHook(root) {
     e.stopImmediatePropagation();
     ui.notifications.warn(game.i18n.localize('DSDT.notice.playerCannotUndoDamage'));
   }, { capture: true });
+}
+
+export function canUndoCausedDeath() {
+  return isPrimaryGM() || !!setting('playerCanUndoCausedDeaths');
+}
+
+export function undoCausedDeath(tokenUuid) {
+  if (!canUndoCausedDeath()) return false;
+  announcePendingRevival(tokenUuid);
+  if (isPrimaryGM()) {
+    setTimeout(() => runDstdUndoRevival(tokenUuid), 500);
+    return true;
+  }
+  const socket = dtSocket();
+  if (!socket) return false;
+  executeAsDirector(socket, 'dt.dstdUndoDeath', tokenUuid);
+  return true;
 }
 
 export function markPendingRevival(tokenUuid, ttl = 8000) {
@@ -304,3 +312,7 @@ export const registerDeathTrackerDstd = () => {
 
 services.provide('markPendingRevival', markPendingRevival);
 services.provide('announcePendingRevival', announcePendingRevival);
+services.provide('canUndoCausedDeath', canUndoCausedDeath);
+services.provide('undoCausedDeath', undoCausedDeath);
+services.provide('deathGroupFor', deathGroupFor);
+services.provide('revivalHoverPreview', installRevivalHoverPreview);

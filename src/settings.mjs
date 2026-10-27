@@ -1,5 +1,5 @@
 import { DT_ID, LEGACY_ID, writeFlag } from './dt-core.mjs';
-import { isPrimaryGM, setTip, tipFrom } from './ctlib.mjs';
+import { isPrimaryGM, setTip, tipFrom, registerSettingsLayout } from './ctlib.mjs';
 
 const L = (key) => game.i18n.localize(`DSDT.setting.${key}`);
 const DSTD = 'draw-steel-target-damage';
@@ -12,21 +12,32 @@ const WORLD_KEYS = ['overrideMinionDefeat', 'autoAssignDamagedMinion', 'pickDeat
   'deathTrackerSkullIds', 'suppressTrackerAutoDefeat'];
 const CLIENT_KEYS = ['deathPickerDimAll', 'cedeDeathPickerToGM'];
 
-const SETTING_HEADERS = [
-  ['MinionDeaths', ['overrideMinionDefeat', 'autoAssignDamagedMinion', 'pickDeathsEnabled', 'deathPickerDimAll',
-    'gmControlsAllDeathPickers', 'cedeDeathPickerToGM']],
-  ['DeathAnimation', ['deathAnimationDuration', 'batchAnimationSafety']],
-  ['FallenCreatures', ['deathMarkerEnabled', 'deathMarkerIcon', 'clearSkullsOnCombatEnd', 'cleanOrphanedCombatants']],
-  ['RevivesAndUndo', ['clearEffectsOnRevive', 'playerCanUndoCausedDeaths']],
-  ['CombatTracker', ['suppressTrackerAutoDefeat']],
-  ['Debug', ['debugMode']],
-];
-
-const SUB_SETTINGS = {
-  overrideMinionDefeat: ['autoAssignDamagedMinion'],
-  pickDeathsEnabled: ['deathPickerDimAll', 'gmControlsAllDeathPickers', 'cedeDeathPickerToGM'],
-  deathMarkerEnabled: ['deathMarkerIcon'],
-};
+const H = (key) => `DSDT.settingHeader.${key}`;
+registerSettingsLayout(DT_ID, [
+  { label: H('MinionDeaths'), wiki: 'Death-Notifications#minion-deaths', items: ['overrideMinionDefeat', 'autoAssignDamagedMinion', 'pickDeathsEnabled',
+    'deathPickerDimAll', 'gmControlsAllDeathPickers', 'cedeDeathPickerToGM'] },
+  { label: H('DeathAnimation'), items: ['deathAnimationDuration', 'batchAnimationSafety'] },
+  { label: H('FallenCreatures'), wiki: 'Death-Notifications#what-happens-on-defeat', items: ['deathMarkerEnabled', 'deathMarkerIcon', 'clearSkullsOnCombatEnd',
+    'cleanOrphanedCombatants'] },
+  { label: H('RevivesAndUndo'), wiki: 'Raise-Dead', items: ['clearEffectsOnRevive', 'playerCanUndoCausedDeaths'] },
+  { label: H('CombatTracker'), items: ['suppressTrackerAutoDefeat'] },
+  { label: H('Debug'), items: ['debugMode'] },
+], {
+  dependencies: {
+    autoAssignDamagedMinion: 'overrideMinionDefeat',
+    deathPickerDimAll: 'pickDeathsEnabled',
+    gmControlsAllDeathPickers: 'pickDeathsEnabled',
+    cedeDeathPickerToGM: 'pickDeathsEnabled',
+    deathMarkerIcon: 'deathMarkerEnabled',
+  },
+  wiki: {
+    base: 'https://github.com/TheGenieOfTheCode/draw-steel-death-tracker/wiki/',
+    pages: {
+      clearEffectsOnRevive: 'Raise-Dead#what-revival-does',
+      playerCanUndoCausedDeaths: 'Death-Notifications#undo',
+    },
+  },
+});
 
 (() => {
   try {
@@ -74,30 +85,6 @@ Hooks.on('renderSettingsConfig', (_app, html) => {
     }).render(true));
     picker.style.display = 'none';
     picker.after(tile);
-  }
-
-  for (const [header, keys] of SETTING_HEADERS) {
-    const first = keys.map(groupOf).find(Boolean);
-    if (!first || first.previousElementSibling?.classList?.contains('dsdt-settings-header')) continue;
-    const h = document.createElement('h3');
-    h.className = 'dsdt-settings-header';
-    h.textContent = game.i18n.localize(`DSDT.settingHeader.${header}`);
-    first.insertAdjacentElement('beforebegin', h);
-  }
-
-  for (const [parent, children] of Object.entries(SUB_SETTINGS)) {
-    const box = root.querySelector(`[name="${DT_ID}.${parent}"]`);
-    if (!box) continue;
-    const groups = children.map(groupOf).filter(Boolean);
-    for (const g of groups) g.classList.add('dsdt-sub-setting');
-    const sync = () => {
-      for (const g of groups) {
-        g.classList.toggle('dsdt-sub-off', !box.checked);
-        g.querySelectorAll('input, select, button, file-picker').forEach((i) => { i.disabled = !box.checked; });
-      }
-    };
-    box.addEventListener('change', sync);
-    sync();
   }
 });
 

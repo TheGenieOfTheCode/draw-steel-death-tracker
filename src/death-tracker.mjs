@@ -462,7 +462,7 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
 
       if (!skipHpCorrection && setting('cleanOrphanedCombatants') && t.actor.system?.isMinion && groupId) {
         const hp = t.actor.system.stamina?.max ?? 0;
-        if (hp > 0) step3GroupHpDeltas.set(groupId, (step3GroupHpDeltas.get(groupId) ?? 0) + hp);
+        if (hp > 0) step3GroupHpDeltas.set(groupId, hp);
       }
     }
 
@@ -478,11 +478,13 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
     }
 
     
-    for (const [gid, delta] of step3GroupHpDeltas) {
+    const dyingIds = new Set(tokens.map(t => t.id));
+    for (const [gid, indivHP] of step3GroupHpDeltas) {
       const group = game.combat?.groups.get(gid);
       if (group) {
-        _tm(`step 3: HP correction for group ${gid} (-${delta})`);
-        await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - delta) }, txn);
+        const pool = poolAfterDeaths(group, indivHP, dyingIds);
+        _tm(`step 3: HP correction for group ${gid} (to ${pool})`);
+        await group.update({ 'system.staminaValue': pool }, txn);
         _tm('step 3: HP correction done');
       }
     }
@@ -1152,6 +1154,11 @@ const dstdStillApplying = () => {
     if (midPass) return `"${msg.flavor || 'a damage card'}" still applying (${applied}/${targets})`;
   }
   return null;
+};
+
+const poolAfterDeaths = (group, indivHP, gone = new Set()) => {
+  const standing = Array.from(group?.members ?? []).filter(m => m?.actor?.system?.isMinion && !m.defeated && !m.isDefeated && !gone.has(m.tokenId)).length;
+  return Math.max(0, Math.min(group?.system?.staminaValue ?? 0, standing * indivHP));
 };
 
 const livingTokensOf = (group) => Array.from(group?.members ?? [])
@@ -2038,7 +2045,7 @@ export function registerDeathTrackerHooks() {
               for (const gid of livingGroupIds) {
                 if (emptyGroups.includes(gid)) continue;
                 const group = combat.groups.get(gid);
-                if (group) await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - indivHP) });
+                if (group) await group.update({ 'system.staminaValue': poolAfterDeaths(group, indivHP) });
               }
             }
             if (dbg) console.log(`Death Tracker | deleteToken | empty groups after combatant removal: [${emptyGroups.join(', ') || 'none'}]`);
@@ -2078,7 +2085,7 @@ export function registerDeathTrackerHooks() {
                 if (emptyGroups.includes(gid)) continue;
                 const living = orphaned.filter(c => !c.defeated && c._source?.group === gid).length;
                 const group = combat.groups.get(gid);
-                if (group && living) await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - indivHP * living) });
+                if (group && living) await group.update({ 'system.staminaValue': poolAfterDeaths(group, indivHP) });
               }
             }
           }

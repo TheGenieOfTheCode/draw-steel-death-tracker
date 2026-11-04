@@ -63,7 +63,9 @@ async function _postKillswitch() {
   const gmIds = game.users.filter(u => u.isGM).map(u => u.id);
   const msg = await ChatMessage.create({
     content: `<p class="dsct-killswitch-note">${game.i18n.localize('DSDT.chat.dt.pickerStuckNote')}</p>`
-      + `<div class="message-part-buttons"><button type="button" data-dsct-picker-killswitch>`
+      + `<div class="message-part-buttons"><button type="button" data-dsct-picker-settle data-tooltip="${game.i18n.localize('DSDT.tooltip.settleDeathsNow')}">`
+      + `<i class="fa-solid fa-forward"></i> ${game.i18n.localize('DSDT.button.settleDeathsNow')}</button>`
+      + `<button type="button" data-dsct-picker-killswitch data-tooltip="${game.i18n.localize('DSDT.tooltip.releasePicker')}">`
       + `<i class="fa-solid fa-hand"></i> ${game.i18n.localize('DSDT.button.releasePicker')}</button></div>`,
     whisper: gmIds,
     flags: { [M]: { pickerKillswitch: true } },
@@ -117,6 +119,11 @@ export function registerPickerLock() {
     el.querySelector('[data-dsct-picker-killswitch]')?.addEventListener('click', (e) => {
       e.preventDefault();
       releasePickerLock();
+    });
+    el.querySelector('[data-dsct-picker-settle]')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const { resolveDeathsNow } = await import('./death-tracker.mjs');
+      if (!resolveDeathsNow()) ui.notifications.info(game.i18n.localize('DSDT.notice.dt.nothingToSettle'));
     });
   });
 

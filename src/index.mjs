@@ -7,6 +7,16 @@ import { DT_ID, readFlag, writeFlag, setting } from './dt-core.mjs';
 import { registerDeathTrackerDstd, queueDstdUndoRevival, markPendingRevival } from './dstd-death.mjs';
 import { reviveCombatant } from './keep-defeated.mjs';
 import { executeAsDirector } from './ctlib.mjs';
+import { dtSocket } from './dt-core.mjs';
+
+Hooks.on('ctlib.journalUndone', (message, entry) => {
+  if (entry?.action !== 'applyDamage') return;
+  const tokenUuid = message?.system?.parts?.get?.(entry.partId)?.tokenUuid;
+  if (!tokenUuid) return;
+  const fell = (entry.targets ?? []).some((t) => Number(t.after) < Number(t.before)
+    && (t.tempBefore === undefined || (Number(t.before) > 0 && Number(t.after) <= 0)));
+  if (fell) executeAsDirector(dtSocket(), 'dt.dstdUndoDeath', tokenUuid).catch(() => {});
+});
 
 export { registerDeathTrackerHooks, registerPickerLock, registerDeferDeath, registerDeathVisuals, registerDefeatedTokenVisibility, registerDeathTrackerDstd };
 

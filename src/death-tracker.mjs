@@ -1504,7 +1504,15 @@ export function registerDeathTrackerHooks() {
   Hooks.on('preUpdateActor', (actor, changes, options, userId) => {
     const next = changes.system?.stamina?.value;
     if (next === undefined || next >= (actor.system?.stamina?.value ?? 0)) return;
-    noteDamageCause({ dstd: options?.dstd?.source === 'draw-steel-target-damage', userId });
+    const origin = options?.ds?.origin;
+    noteDamageCause({ dstd: options?.dstd?.source === 'draw-steel-target-damage', userId,
+      messageId: origin?.messageId ?? null, sourceActorUuid: origin?.actorUuid ?? null });
+  });
+
+  Hooks.on('ctlib.preApplyTargetResult', (part, action) => {
+    if (action !== 'applyDamage' || !part?.tokenUuid) return;
+    const doc = fromUuidSync(part.tokenUuid, { strict: false });
+    if (doc?.actor?.system?.isMinion && getSquadGroup(doc.actor)) reportSquadDamage(doc.id);
   });
 
   Hooks.on('combatRound', () => { cleanBaseNpcActors(); });
@@ -1591,6 +1599,9 @@ export function registerDeathTrackerHooks() {
     
     
     
+    const origin = options?.ds?.origin;
+    if (origin?.messageId) noteDamageCause({ messageId: origin.messageId, sourceActorUuid: origin.actorUuid ?? null });
+
     const dstdOpts = options?.dstd;
     if (dstdOpts?.source === 'draw-steel-target-damage') {
       noteDamageCause({ dstd: true, messageId: _latestDstdCardId() });

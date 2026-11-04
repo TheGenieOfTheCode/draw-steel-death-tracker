@@ -8,6 +8,7 @@ const KILLSWITCH_AFTER_MS = 15000;
 const LOCKED = [
   '[data-dstd-action="applyDamage"]',
   '[data-dstd-action="undoDamage"]',
+  '[data-message-part] button[data-action="applyDamage"]',
   '.dsct-dstd-global-row button',
   '.dsct-dstd-squad-btn',
   '[data-action="execute-dc"]',

@@ -6,8 +6,22 @@ import { registerPickerLock, setPickerLockLocal, clearPickerLockLocal, releasePi
 import { DT_ID, readFlag, writeFlag, setting } from './dt-core.mjs';
 import { registerDeathTrackerDstd, queueDstdUndoRevival, markPendingRevival } from './dstd-death.mjs';
 import { reviveCombatant, markDefeated } from './keep-defeated.mjs';
-import { executeAsDirector } from './ctlib.mjs';
+import { executeAsDirector, isPrimaryGM } from './ctlib.mjs';
 import { dtSocket } from './dt-core.mjs';
+
+document.addEventListener('click', (event) => {
+  const undo = event.target.closest?.('.ctlib-split > button.ctlib-undo');
+  if (!undo || isPrimaryGM() || setting('playerCanUndoCausedDeaths')) return;
+  if (!undo.parentElement.querySelector('[data-action="applyDamage"]')) return;
+  const message = game.messages.get(undo.closest('[data-message-id]')?.dataset.messageId);
+  const part = message?.system?.parts?.get?.(undo.closest('[data-message-part]')?.dataset.messagePart);
+  if (part?.type !== 'targetResult') return;
+  const actor = (part.tokenUuid ? fromUuidSync(part.tokenUuid, { strict: false })?.actor : null) ?? part.actorTarget;
+  if (!actor?.statuses?.has(CONFIG.specialStatusEffects?.DEFEATED ?? 'dead')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  ui.notifications.warn(game.i18n.localize('DSDT.notice.playerCannotUndoDamage'));
+}, { capture: true });
 
 Hooks.on('ctlib.journalUndone', (message, entry) => {
   if (entry?.action !== 'applyDamage') return;

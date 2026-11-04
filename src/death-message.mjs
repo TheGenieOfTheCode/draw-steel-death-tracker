@@ -1,6 +1,6 @@
 
 import { installRevivalHoverPreview, pingDeadToken, clearRevivalPreview, clearRevivalPreviewIfOrphaned } from './defeated-token-visibility.mjs';
-import { services } from './ctlib.mjs';
+import { services, setTip, tipFrom } from './ctlib.mjs';
 
 const _open = new Set();
 const _openKey = (msgId, key) => `${msgId}:${key}`;
@@ -40,10 +40,7 @@ const _portrait = (death, { isCaptain = false } = {}) => {
   btn.className = isCaptain ? 'dsct-death-token is-captain' : 'dsct-death-token';
   const canHandOn = isCaptain && services.has('reassignSquadCaptain');
   btn.dataset.tokenId = death.tokenId;
-  btn.dataset.tooltip = game.i18n.format(
-    canHandOn && game.user.isGM ? 'DSDT.tooltip.pingDeadCaptain' : 'DSDT.tooltip.pingDead',
-    { name: death.name },
-  );
+  setTip(btn, tipFrom(canHandOn && game.user.isGM ? 'DSDT.tip.fallenCaptain' : 'DSDT.tip.fallen', { title: death.name }));
 
   const img = document.createElement('img');
   img.className = 'dsct-death-art';
@@ -150,7 +147,7 @@ const _section = (msg, section, { canRevive, revive }) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'dsct-death-revive-group';
-    btn.dataset.tooltip = game.i18n.localize('DSDT.tooltip.reviveGroup');
+    setTip(btn, tipFrom('DSDT.tip.reviveGroup'));
     btn.innerHTML = `<i class="fa-solid fa-rotate-left"></i>`;
     btn.addEventListener('click', async (e) => {
       e.preventDefault();

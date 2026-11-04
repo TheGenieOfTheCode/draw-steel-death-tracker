@@ -31,7 +31,9 @@ export const reviveUpdate = (combatant) => ({
 export const markDefeated = async (combatants, options = {}) => {
   const list = combatants.filter((c) => c && !c.defeated);
   if (!list.length) return;
-  await list[0].parent.updateEmbeddedDocuments('Combatant', list.map(defeatUpdate), options).catch((err) => {
+  const combat = list[0].parent;
+  if (!combat.isOwner) return executeAsDirector(dtSocket(), 'dt.markDefeated', combat.id, list.map((c) => c.id), options).catch(() => {});
+  await combat.updateEmbeddedDocuments('Combatant', list.map(defeatUpdate), options).catch((err) => {
     if (setting('debugMode')) console.warn('Death Tracker | could not mark the fallen defeated:', err);
   });
 };

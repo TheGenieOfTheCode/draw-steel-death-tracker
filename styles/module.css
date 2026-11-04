@@ -307,20 +307,6 @@ body.dsdt-hiding-defeated #ds-combat-dock .ds-group-wrapper:has(> .ds-group-cont
   display: none;
 }
 
-.dsdt-settings-header {
-  margin: 14px 0 4px;
-  padding-bottom: 3px;
-  border-bottom: 1px solid light-dark(rgba(122, 90, 20, 0.45), rgba(217, 166, 63, 0.45));
-  color: light-dark(#7a5a14, #d9a63f);
-  font-size: 1em;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.form-group.dsdt-sub-setting { margin-left: 1.5em; }
-.form-group.dsdt-sub-setting > .hint { padding-right: 1.5em; }
-.form-group.dsdt-sub-setting.dsdt-sub-off { opacity: 0.5; }
-
 .form-group:has(> .form-fields > input[type="checkbox"][name^="draw-steel-death-tracker."]) > label { flex: 1 1 0; min-width: 0; }
 .form-group:has(> .form-fields > input[type="checkbox"][name^="draw-steel-death-tracker."]) > .form-fields { flex: 0 0 auto; width: auto; }
 

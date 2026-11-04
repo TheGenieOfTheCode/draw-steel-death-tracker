@@ -114,7 +114,7 @@ export function syncDeathVisual(token) {
 }
 
 function _animationDuration() {
-  if (window._dsctKillLockActive || window._dsctFMActive) return 0;
+  if (window._dsctKillLockActive || window._dsctFMActive || globalThis.ctlib?.reducedEffects?.()) return 0;
   const ms = Number(setting('deathAnimationDuration'));
   return Number.isFinite(ms) && ms > 0 ? ms : 0;
 }

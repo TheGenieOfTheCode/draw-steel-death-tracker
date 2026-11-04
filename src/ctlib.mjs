@@ -28,7 +28,8 @@ export const {
   setPickerTarget, setRaisedDeadVisible, sightBlockPoint, sightLinesToToken, sightOriginPoints, sightSamplePoints,
   sightSamples, sizeRank, snapStamina, spaceSamplePoints, squareIsConcealed, stackedPrompt, tierOf, tileAt,
   tileIsOpenDoor, toCenter, toGrid, toWorld, tokFootprintDist, tokenAt, tokenCoverMode, touchesGround, undoDamage,
-  visibleSquareCorners, visibleTargetCorners, wallBetween, wallBlocksMovement, wallGrantsCover
+  visibleSquareCorners, visibleTargetCorners, wallBetween, wallBlocksMovement, wallGrantsCover,
+  TIP_CLASS, richTip, tipFrom, setTip, tipAttrs
 } = lib;
 
 export const SettingsSubmenu = lib.settingsSubmenu?.() ?? lib.SettingsSubmenu;
@@ -37,3 +38,4 @@ export const primaryGM = lib.primaryGM ?? (() => game.users.activeGM ?? null);
 export const isPrimaryGM = lib.isPrimaryGM ?? (() => !!game.users.activeGM?.isSelf);
 export const executeAsDirector = lib.executeAsDirector
   ?? ((socket, handler, ...args) => (socket ? socket.executeAsGM(handler, ...args) : Promise.resolve(undefined)));
+export const registerSettingsLayout = lib.registerSettingsLayout ?? (() => {});

@@ -10,6 +10,10 @@ import { markDefeated, reviveUpdate } from './keep-defeated.mjs';
 
 
 const CAUSE_TTL_MS = 8000;
+const PICK_CONTROLS = [
+  { input: 'CTLIB.picker.help.click', action: 'CTLIB.picker.help.toggleToken' },
+  { input: 'CTLIB.picker.help.doubleClickEmpty', action: 'CTLIB.picker.confirm' },
+];
 let _damageCause = null;
 
 const _latestDstdCardId = () => game.messages?.contents
@@ -458,7 +462,7 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
 
       if (!skipHpCorrection && setting('cleanOrphanedCombatants') && t.actor.system?.isMinion && groupId) {
         const hp = t.actor.system.stamina?.max ?? 0;
-        if (hp > 0) step3GroupHpDeltas.set(groupId, (step3GroupHpDeltas.get(groupId) ?? 0) + hp);
+        if (hp > 0) step3GroupHpDeltas.set(groupId, hp);
       }
     }
 
@@ -474,11 +478,13 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
     }
 
     
-    for (const [gid, delta] of step3GroupHpDeltas) {
+    const dyingIds = new Set(tokens.map(t => t.id));
+    for (const [gid, indivHP] of step3GroupHpDeltas) {
       const group = game.combat?.groups.get(gid);
       if (group) {
-        _tm(`step 3: HP correction for group ${gid} (-${delta})`);
-        await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - delta) }, txn);
+        const pool = poolAfterDeaths(group, indivHP, dyingIds);
+        _tm(`step 3: HP correction for group ${gid} (to ${pool})`);
+        await group.update({ 'system.staminaValue': pool }, txn);
         _tm('step 3: HP correction done');
       }
     }
@@ -490,7 +496,7 @@ const _doKillV3 = async (tokenIds, { skipHpCorrection = false, showNotification 
     
     
     const batchEntries = [];
-    const animDuration = (setting('batchAnimationSafety') && tokens.length >= 8) ? 0 : setting('deathAnimationDuration');
+    const animDuration = ((setting('batchAnimationSafety') && tokens.length >= 8) || globalThis.ctlib?.reducedEffects?.()) ? 0 : setting('deathAnimationDuration');
     _tm(`step 4: starting visuals (animDuration=${animDuration}ms)`);
     await Promise.all(tokens.map(async (t) => {
       if (!canvas.tokens.get(t.id)) return;
@@ -994,6 +1000,9 @@ export const _runManualModePicker = (contexts) => new Promise((resolve) => {
     uiToggle: true,
     onConfirm: () => tryConfirm(),
     onCancel: () => { finish(); resolve(null); },
+    controls: PICK_CONTROLS,
+    cancelOnRightClick: !!setting('cancelOnRightClick'),
+    onRightClick: () => { if (setting('cancelOnRightClick')) { finish(); resolve(null); } },
   });
   const refreshNotif = () => {
     const summary = squads.map(s => `${s.groupName}: ${s.selected.size}/${s.numToKill}`).join(', ');
@@ -1086,7 +1095,6 @@ export const _runManualModePicker = (contexts) => new Promise((resolve) => {
 
   const onContextMenu = (e) => {
     e.preventDefault();
-    if (setting('cancelOnRightClick')) { finish(); resolve(null); }
   };
 
   canvas.stage.on('mousedown', onClick);
@@ -1111,6 +1119,11 @@ const DSTD_MODULE = 'draw-steel-target-damage';
 
 const DSTD_ROW_GRACE_MS = 2000;
 
+const DSTD_CARD_IDLE_MS = 15000;
+
+const lastTouched = (a) => Math.max(0, a.appliedAt ?? 0, a.undoneAt ?? 0,
+  ...(Array.isArray(a.records) ? a.records.map(r => Math.max(r?.appliedAt ?? 0, r?.undoneAt ?? 0)) : []));
+
 const dstdStillApplying = () => {
   if (window._dsctDamageBatchDepth > 0) return 'damage still going out';
   const pending = window._dsctDstdRowPending;
@@ -1127,10 +1140,13 @@ const dstdStillApplying = () => {
     if (!targets) continue;
 
     
-    const rows = Object.entries(state.applications ?? {})
+    const entries = Object.entries(state.applications ?? {})
       .filter(([id, a]) => a && (a.kind === 'damage' || a.kind === 'healing' || /^(damage|healing)-/.test(id)))
-      .map(([, a]) => a.status);
-    if (!rows.length) continue;
+      .map(([, a]) => a);
+    if (!entries.length) continue;
+    const touched = Math.max(...entries.map(lastTouched));
+    if (touched && Date.now() - touched > DSTD_CARD_IDLE_MS) continue;
+    const rows = entries.map(a => a.status);
 
     const applied = rows.filter(st => st === 'applied').length;
     const undone = rows.filter(st => st === 'undone').length;
@@ -1138,6 +1154,11 @@ const dstdStillApplying = () => {
     if (midPass) return `"${msg.flavor || 'a damage card'}" still applying (${applied}/${targets})`;
   }
   return null;
+};
+
+const poolAfterDeaths = (group, indivHP, gone = new Set()) => {
+  const standing = Array.from(group?.members ?? []).filter(m => m?.actor?.system?.isMinion && !m.defeated && !m.isDefeated && !gone.has(m.tokenId)).length;
+  return Math.max(0, Math.min(group?.system?.staminaValue ?? 0, standing * indivHP));
 };
 
 const livingTokensOf = (group) => Array.from(group?.members ?? [])
@@ -1166,6 +1187,25 @@ const syncDeathPulse = (group) => {
 let _forceSettleNow = null;
 
 export const resolveDeathsNow = () => _forceSettleNow?.() ?? false;
+
+const SETTLE_GRACE_MS = 250;
+const SETTLE_POLL_MS = 100;
+
+const _deathsSettling = () => _stillSettling() || !!_pickerOpen || deathSettlementPending();
+
+export const settleDeaths = async (timeout = 120000) => {
+  if (!isPrimaryGM()) return executeAsDirector(dtSocket(), 'dt.settleDeaths', timeout);
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const until = Date.now() + timeout;
+  await wait(SETTLE_GRACE_MS);
+  resolveDeathsNow();
+  let calm = 0;
+  while (calm < 2 && Date.now() < until) {
+    await wait(SETTLE_POLL_MS);
+    calm = _deathsSettling() ? 0 : calm + 1;
+  }
+  return calm >= 2;
+};
 
 const _MANUAL_KILL_ACCUM_MS = 100;
 
@@ -2016,7 +2056,7 @@ export function registerDeathTrackerHooks() {
               for (const gid of livingGroupIds) {
                 if (emptyGroups.includes(gid)) continue;
                 const group = combat.groups.get(gid);
-                if (group) await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - indivHP) });
+                if (group) await group.update({ 'system.staminaValue': poolAfterDeaths(group, indivHP) });
               }
             }
             if (dbg) console.log(`Death Tracker | deleteToken | empty groups after combatant removal: [${emptyGroups.join(', ') || 'none'}]`);
@@ -2056,7 +2096,7 @@ export function registerDeathTrackerHooks() {
                 if (emptyGroups.includes(gid)) continue;
                 const living = orphaned.filter(c => !c.defeated && c._source?.group === gid).length;
                 const group = combat.groups.get(gid);
-                if (group && living) await group.update({ 'system.staminaValue': Math.max(0, (group.system.staminaValue ?? 0) - indivHP * living) });
+                if (group && living) await group.update({ 'system.staminaValue': poolAfterDeaths(group, indivHP) });
               }
             }
           }
@@ -2404,6 +2444,13 @@ export const runRaiseDeadUI = () => {
       finish();
       ui.notifications.info(game.i18n.localize('DSDT.notice.dt.raiseDeadCancelled'));
     },
+    controls: PICK_CONTROLS,
+    cancelOnRightClick: !!setting('cancelOnRightClick'),
+    onRightClick: () => {
+      if (!setting('cancelOnRightClick')) return;
+      finish();
+      ui.notifications.info(game.i18n.localize('DSDT.notice.dt.raiseDeadCancelled'));
+    },
   });
   const syncStatus = () => {
     overlay.setStatus(game.i18n.format('DSDT.picker.selectedCount', { n: selected.size }));
@@ -2432,10 +2479,6 @@ export const runRaiseDeadUI = () => {
 
   const onContextMenu = (e) => {
     e.preventDefault();
-    if (setting('cancelOnRightClick')) {
-      finish();
-      ui.notifications.info(game.i18n.localize('DSDT.notice.dt.raiseDeadCancelled'));
-    }
   };
 
   const onClick = (event) => {
@@ -2530,6 +2573,7 @@ export const cleanupPixi = () => {
 };
 
 export const runPowerWordKillUI = async (options = {}) => {
+  if (!game.user.isGM) { ui.notifications.warn(game.i18n.localize('DSDT.notice.dt.gmOnly')); return; }
 
   if (window._pwkActive) {
     if (!window._pwkQueue) window._pwkQueue = [];
@@ -2724,6 +2768,9 @@ export const runPowerWordKillUI = async (options = {}) => {
     tokens: npcs,
     onConfirm: () => doKill(),
     onCancel: () => doCancel(),
+    controls: PICK_CONTROLS,
+    cancelOnRightClick: !!setting('cancelOnRightClick'),
+    onRightClick: () => { if (setting('cancelOnRightClick')) doCancel(); },
   });
   const syncStatus = () => {
     overlay.setStatus(
@@ -2776,11 +2823,6 @@ export const runPowerWordKillUI = async (options = {}) => {
   };
 
   const onClick = (event) => {
-    if (event.data.originalEvent.button === 2) {
-      if (setting('cancelOnRightClick')) doCancel();
-      return;
-    }
-
     if (event.data.originalEvent.button !== 0) return;
 
     const pos = event.data.getLocalPosition(canvas.app.stage);
@@ -2834,7 +2876,6 @@ export const runPowerWordKillUI = async (options = {}) => {
 
   const onContextMenu = (e) => {
     e.preventDefault();
-    if (setting('cancelOnRightClick')) doCancel();
   };
 
   const onMove = (event) => {
@@ -2869,5 +2910,6 @@ services.provide('deathSavedSquad', (tokenDoc) => readFlag(tokenDoc, 'savedGroup
 services.provide('forgetDeathSavedSquad', (tokenDoc) => safeUpdate(tokenDoc, { flags: dropFlags(tokenDoc, 'savedGroupId') }));
 services.provide('deathMessagesFor', deathMessagesFor);
 services.provide('resolveDeathsNow', resolveDeathsNow);
+services.provide('settleDeaths', settleDeaths);
 services.provide('minionOverrideActive', () => setting('overrideMinionDefeat'));
 

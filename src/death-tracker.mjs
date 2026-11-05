@@ -117,7 +117,7 @@ const _refreshReaper = foundry.utils.debounce(() => {
       if (actor.system?.isMinion) { add(maybe, doc); continue; }
       const st = actor.system?.stamina;
       if (!st) continue;
-      const floor = actor.type === 'hero' ? -(st.winded ?? 0) : 0;
+      const floor = Math.min(0, st.min ?? 0);
       if ((st.value ?? 0) + (st.temporary ?? 0) - Number(e.heldDamage.amount ?? 0) <= floor) add(maybe, doc);
     }
     for (const uuid of certain.keys()) maybe.delete(uuid);
@@ -1486,7 +1486,7 @@ export const reportSquadDamage = (tokenId) => {
 };
 
 export const deathTrackerExcludedTypes = new Set();
-const _isDTExcluded = (actor) => actor.type === 'hero' || actor.type === 'retainer' || deathTrackerExcludedTypes.has(actor.type);
+const _isDTExcluded = (actor) => ['hero', 'retainer', 'companion'].includes(actor.type) || deathTrackerExcludedTypes.has(actor.type);
 
 function _suppressSystemMinionPrompt() {
   if (!setting('overrideMinionDefeat')) return;
